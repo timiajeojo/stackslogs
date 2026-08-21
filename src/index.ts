@@ -1,4 +1,5 @@
 import express from "express";
+import authRoutes from "./routes/auth.routes";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -16,6 +17,7 @@ app.get("/health", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
+app.use("/api/auth", authRoutes);
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
