@@ -4,6 +4,7 @@ var express_1 = require("express");
 var auth_routes_1 = require("./routes/auth.routes");
 var auth_middleware_1 = require("./middleware/auth.middleware");
 var cors_1 = require("cors");
+var listings_routes_1 = require("./routes/listings.routes");
 var helmet_1 = require("helmet");
 var express_rate_limit_1 = require("express-rate-limit");
 require("dotenv/config");
@@ -17,6 +18,7 @@ app.get("/health", function (req, res) {
 });
 var PORT = process.env.PORT || 3000;
 app.use("/api/auth", auth_routes_1.default);
+app.use("/api/listings", listings_routes_1.default);
 app.get("/api/me", auth_middleware_1.requireAuth, function (req, res) {
     res.json({ userId: req.userId });
 });

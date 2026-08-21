@@ -2,6 +2,7 @@ import express from "express";
 import authRoutes from "./routes/auth.routes";
 import { requireAuth, AuthRequest } from "./middleware/auth.middleware";
 import cors from "cors";
+import listingsRoutes from "./routes/listings.routes";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import "dotenv/config";
@@ -19,6 +20,7 @@ app.get("/health", (req, res) => {
 
 const PORT = process.env.PORT || 3000;
 app.use("/api/auth", authRoutes);
+app.use("/api/listings", listingsRoutes);
 app.get("/api/me", requireAuth, (req: AuthRequest, res) => {
   res.json({ userId: req.userId });
 });
