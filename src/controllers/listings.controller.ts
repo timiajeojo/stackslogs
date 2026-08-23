@@ -29,10 +29,11 @@ export async function getListings(req: AuthRequest, res: Response) {
 }
 
 export async function getListingById(req: AuthRequest, res: Response) {
+  const id = req.params.id as string;
   const [listing] = await db
     .select()
     .from(listings)
-    .where(eq(listings.id, req.params.id));
+    .where(eq(listings.id, id));
 
   if (!listing) {
     return res.status(404).json({ error: "Listing not found" });
