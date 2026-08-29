@@ -193,3 +193,9 @@ footer{border-top:1px solid var(--border);padding:28px 32px;position:relative;z-
 .auth-footer{text-align:center;margin-top:24px;font-size:14px;color:var(--text-muted);}
 .auth-footer a{color:var(--blue);font-weight:500;}
 .auth-footer a:hover{text-decoration:underline;}
+
+.row-between{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;font-size:13.5px;}
+.checkbox-row{display:flex;align-items:center;gap:8px;color:var(--text-muted);}
+.checkbox-row input{width:15px;height:15px;accent-color:var(--blue);}
+.forgot-link{color:var(--blue);font-weight:500;}
+.forgot-link:hover{text-decoration:underline;}
