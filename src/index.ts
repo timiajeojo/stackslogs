@@ -6,6 +6,9 @@ import listingsRoutes from "./routes/listings.routes";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import "dotenv/config";
+import { db } from "./db";
+import { users } from "./db/schema";
+import { eq } from "drizzle-orm";
 
 const app = express();
 
@@ -21,8 +24,10 @@ app.get("/health", (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.use("/api/auth", authRoutes);
 app.use("/api/listings", listingsRoutes);
-app.get("/api/me", requireAuth, (req: AuthRequest, res) => {
-  res.json({ userId: req.userId });
+app.get("/api/me", requireAuth, async (req: AuthRequest, res) => {
+  const [user] = await db.select().from(users).where(eq(users.id, req.userId!));
+  if (!user) return res.status(404).json({ error: "User not found" });
+  res.json({ id: user.id, email: user.email, balance: user.balance });
 });
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

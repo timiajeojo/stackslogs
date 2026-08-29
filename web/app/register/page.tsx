@@ -63,7 +63,7 @@ export default function Register() {
       }
 
       localStorage.setItem("token", data.token);
-      router.push("/");
+      router.push("/dashboard");
     } catch {
       setError("Something went wrong. Try again.");
       setLoading(false);
