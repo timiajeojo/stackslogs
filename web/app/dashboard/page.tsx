@@ -23,7 +23,7 @@ const platformMeta: Record<string, string> = {
 export default function Dashboard() {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [user, setUser] = useState<{ email: string; balance: number } | null>(null);
+  const [user, setUser] = useState<{ email: string; firstName: string; balance: number } | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
@@ -76,9 +76,13 @@ export default function Dashboard() {
     return acc;
   }, {});
 
-  if (loading) {
-    return <div style={{ padding: 60, textAlign: "center", color: "var(--text-muted)" }}>Loading...</div>;
-  }
+     if (loading) {
+  return (
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div className="logo"><span className="mark">S</span>StacksLogs</div>
+    </div>
+  );
+}
 
   return (
     <>
@@ -116,7 +120,7 @@ export default function Dashboard() {
       <main className="dash-main">
         <div className="balance-card">
           <div>
-            <div className="greeting">Welcome back, <strong>{user?.email}</strong></div>
+            <div className="greeting">Welcome back, <strong>{user?.firstName}</strong></div>
             <div className="amount"><span className="cur">₦</span>{((user?.balance || 0) / 100).toLocaleString()}</div>
           </div>
           <div className="balance-actions">

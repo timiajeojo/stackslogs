@@ -19,9 +19,9 @@ export async function register(req: Request, res: Response) {
 
   const passwordHash = await hashPassword(password);
   const [user] = await db
-    .insert(users)
-    .values({ email, passwordHash })
-    .returning({ id: users.id, email: users.email });
+  .insert(users)
+  .values({ email, passwordHash, firstName, lastName })
+  .returning({ id: users.id, email: users.email, firstName: users.firstName, lastName: users.lastName });
 
   const token = generateToken(user.id);
   res.status(201).json({ user, token });
@@ -32,7 +32,8 @@ export async function login(req: Request, res: Response) {
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.flatten() });
   }
-  const { email, password } = parsed.data;
+
+  const { email, password, firstName, lastName } = parsed.data;
 
   const [user] = await db.select().from(users).where(eq(users.email, email));
   if (!user) {

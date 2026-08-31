@@ -27,7 +27,7 @@ app.use("/api/listings", listingsRoutes);
 app.get("/api/me", requireAuth, async (req: AuthRequest, res) => {
   const [user] = await db.select().from(users).where(eq(users.id, req.userId!));
   if (!user) return res.status(404).json({ error: "User not found" });
-  res.json({ id: user.id, email: user.email, balance: user.balance });
+  res.json({ id: user.id, email: user.email, firstName: user.firstName, balance: user.balance });
 });
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -11,7 +11,9 @@ export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   passwordHash: text("password_hash").notNull(),
-  balance: integer("balance").notNull().default(0), // stored in cents
+  firstName: varchar("first_name", { length: 100 }),
+lastName: varchar("last_name", { length: 100 }),
+  balance: integer("balance").notNull().default(0),
   isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
