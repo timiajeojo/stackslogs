@@ -4,138 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-type Tab = "all" | "completed" | "processing" | "refunds" | "cancelled";
-
-export default function OrdersPage() {
-  const router = useRouter();
-
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("all");
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.push("/login");
-    }
-  }, [router]);
-
-  function closeDrawer() {
-    setDrawerOpen(false);
-  }
-
-  function logout() {
-    localStorage.removeItem("token");
-    router.push("/login");
-  }
-
-  const tabs: { id: Tab; label: string; count: number }[] = [
-    { id: "all", label: "All", count: 0 },
-    { id: "completed", label: "Completed", count: 0 },
-    { id: "processing", label: "Processing", count: 0 },
-    { id: "refunds", label: "Refunds", count: 0 },
-    { id: "cancelled", label: "Cancelled", count: 0 },
-  ];
-
-  return (
-    <>
-      <nav className="orders-nav">
-        <div className="nav-left">
-          <button
-            className="burger"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open menu"
-          >
-            <span />
-            <span />
-            <span />
-          </button>
-        </div>
-
-        <Link href="/dashboard" className="logo">
-          <span className="mark">S</span>
-          StacksLogs
-        </Link>
-
-        <div className="nav-right">
-          <div className="avatar">T</div>
-        </div>
-      </nav>
-
-      <div
-        className={`drawer-overlay ${drawerOpen ? "open" : ""}`}
-        onClick={closeDrawer}
-      />
-
-      <aside className={`drawer ${drawerOpen ? "open" : ""}`}>
-        <div className="drawer-head">
-          <Link href="/dashboard" className="logo" onClick={closeDrawer}>
-            <span className="mark">S</span>
-            StacksLogs
-          </Link>
-
-          <button
-            className="drawer-close"
-            onClick={closeDrawer}
-            aria-label="Close menu"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="drawer-section-label">Home</div>
-
-        <Link
-          href="/dashboard"
-          className="drawer-item"
-          onClick={closeDrawer}
-        >
-          <span className="d-icon">⌂</span>
-          Dashboard
-        </Link>
-
-        <div className="drawer-section-label">Account</div>
-
-        <Link href="/orders" className="drawer-item active">
-          <span className="d-icon">🛒</span>
-          My orders
-        </Link>
-
-        <Link
-          href="/wallet"
-          className="drawer-item"
-          onClick={closeDrawer}
-        >
-          <span className="d-icon">▣</span>
-          Add funds
-        </Link>
-
-        <div className="drawer-item">
-          <span className="d-icon">⚙</span>
-          Settings
-        </div>
-
-        <div className="drawer-item">
-          <span className="d-icon">◉</span>
-          Customer care
-        </div>
-
-        <div className="drawer-spacer" />
-
-        <div className="drawer-logout">
-          <button className="drawer-item logout" onClick={logout}>
-            <span className="d-icon">↪</span>
-            Logout
-          </button>
-        </div>
-      </aside>
-"use client";
-
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-
-type Tab = "all" | "completed" | "processing" | "refunds" | "cancelled";
+type Tab =
+  | "all"
+  | "completed"
+  | "processing"
+  | "refunds"
+  | "cancelled";
 
 export default function OrdersPage() {
   const router = useRouter();
@@ -154,22 +28,21 @@ export default function OrdersPage() {
 
     async function loadUser() {
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/me`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
-        if (!res.ok) {
+        const response = await fetch(`${apiUrl}/api/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
           localStorage.removeItem("token");
           router.push("/login");
           return;
         }
 
-        const user = await res.json();
+        const user = await response.json();
 
         setAvatar(user?.email?.[0]?.toUpperCase() || "U");
       } catch {
@@ -179,6 +52,10 @@ export default function OrdersPage() {
 
     loadUser();
   }, [router]);
+
+  function closeDrawer() {
+    setDrawerOpen(false);
+  }
 
   function logout() {
     localStorage.removeItem("token");
@@ -190,32 +67,52 @@ export default function OrdersPage() {
     label: string;
     count: number;
   }[] = [
-    { id: "all", label: "All", count: 0 },
-    { id: "completed", label: "Completed", count: 0 },
-    { id: "processing", label: "Processing", count: 0 },
-    { id: "refunds", label: "Refunds", count: 0 },
-    { id: "cancelled", label: "Cancelled", count: 0 },
+    {
+      id: "all",
+      label: "All",
+      count: 0,
+    },
+    {
+      id: "completed",
+      label: "Completed",
+      count: 0,
+    },
+    {
+      id: "processing",
+      label: "Processing",
+      count: 0,
+    },
+    {
+      id: "refunds",
+      label: "Refunds",
+      count: 0,
+    },
+    {
+      id: "cancelled",
+      label: "Cancelled",
+      count: 0,
+    },
   ];
 
   return (
     <>
-      {/* Same navigation as Dashboard */}
       <nav className="dash">
         <div className="nav-left">
-          <div
+          <button
             className="burger"
             onClick={() => setDrawerOpen(true)}
+            aria-label="Open navigation"
           >
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
+            <span />
+            <span />
+            <span />
+          </button>
         </div>
 
-        <div className="logo">
+        <Link href="/dashboard" className="logo">
           <span className="mark">S</span>
           StacksLogs
-        </div>
+        </Link>
 
         <div className="nav-right">
           <div className="avatar">{avatar}</div>
@@ -226,40 +123,49 @@ export default function OrdersPage() {
         className={`drawer-overlay ${
           drawerOpen ? "open" : ""
         }`}
-        onClick={() => setDrawerOpen(false)}
+        onClick={closeDrawer}
       />
 
       <aside className={`drawer ${drawerOpen ? "open" : ""}`}>
         <div className="drawer-head">
-          <div className="logo">
+          <Link
+            href="/dashboard"
+            className="logo"
+            onClick={closeDrawer}
+          >
             <span className="mark">S</span>
             StacksLogs
-          </div>
+          </Link>
 
-          <div
+          <button
             className="drawer-close"
-            onClick={() => setDrawerOpen(false)}
+            onClick={closeDrawer}
+            aria-label="Close navigation"
           >
             ✕
-          </div>
+          </button>
         </div>
 
-        <div className="drawer-section-label">Home</div>
+        <div className="drawer-section-label">
+          Home
+        </div>
 
         <Link
           href="/dashboard"
           className="drawer-item"
-          onClick={() => setDrawerOpen(false)}
+          onClick={closeDrawer}
         >
           Dashboard
         </Link>
 
-        <div className="drawer-section-label">Account</div>
+        <div className="drawer-section-label">
+          Account
+        </div>
 
         <Link
           href="/orders"
           className="drawer-item active"
-          onClick={() => setDrawerOpen(false)}
+          onClick={closeDrawer}
         >
           My orders
         </Link>
@@ -267,7 +173,7 @@ export default function OrdersPage() {
         <Link
           href="/wallet"
           className="drawer-item"
-          onClick={() => setDrawerOpen(false)}
+          onClick={closeDrawer}
         >
           Add funds
         </Link>
@@ -280,19 +186,18 @@ export default function OrdersPage() {
           Customer care
         </div>
 
-        <div className="drawer-spacer"></div>
+        <div className="drawer-spacer" />
 
         <div className="drawer-logout">
-          <div
-            className="drawer-item"
+          <button
+            className="drawer-item logout"
             onClick={logout}
           >
             Logout
-          </div>
+          </button>
         </div>
       </aside>
 
-      {/* Orders content */}
       <main className="dash-main orders-main">
         <div className="orders-head-card">
           <div className="orders-head-icon">
@@ -314,7 +219,8 @@ export default function OrdersPage() {
             <h1>My orders</h1>
 
             <p className="orders-sub">
-              Total <span className="cur">₦</span>
+              Total{" "}
+              <span className="cur">₦</span>
               <span className="mono">0.00</span> spent
             </p>
           </div>
@@ -330,7 +236,9 @@ export default function OrdersPage() {
               onClick={() => setActiveTab(tab.id)}
             >
               {tab.label}{" "}
-              <span className="mono">· {tab.count}</span>
+              <span className="mono">
+                · {tab.count}
+              </span>
             </button>
           ))}
         </div>
@@ -384,11 +292,14 @@ export default function OrdersPage() {
             <h3>No orders yet</h3>
 
             <p>
-              You haven&apos;t bought any accounts yet. Explore the
-              catalog to get started.
+              You haven&apos;t bought any accounts yet.
+              Explore the catalog to get started.
             </p>
 
-            <Link href="/dashboard" className="btn btn-blue">
+            <Link
+              href="/dashboard"
+              className="btn btn-blue"
+            >
               Browse accounts
             </Link>
           </div>
