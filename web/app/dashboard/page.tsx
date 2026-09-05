@@ -51,7 +51,9 @@ export default function Dashboard() {
           return;
         }
 
-        setUser(await meRes.json());
+        const userData = await meRes.json();
+        console.log("Dashboard user:", userData);
+        setUser(userData);
         setListings(await listingsRes.json());
       } finally {
         setLoading(false);
