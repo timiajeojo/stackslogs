@@ -109,7 +109,13 @@ export default function Dashboard() {
         <div className="drawer-section-label">Home</div>
         <div className="drawer-item active">Dashboard</div>
         <div className="drawer-section-label">Account</div>
-        <div className="drawer-item">My orders</div>
+        <Link
+              href="/orders"
+              className="drawer-item"
+             onClick={() => setDrawerOpen(false)}
+             >
+             My orders
+           </Link>
         <div className="drawer-item">Add funds</div>
         <div className="drawer-item">Settings</div>
         <div className="drawer-item">Customer care</div>

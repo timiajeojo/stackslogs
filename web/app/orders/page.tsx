@@ -129,8 +129,171 @@ export default function OrdersPage() {
           </button>
         </div>
       </aside>
+"use client";
 
-      <main className="orders-main">
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+type Tab = "all" | "completed" | "processing" | "refunds" | "cancelled";
+
+export default function OrdersPage() {
+  const router = useRouter();
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<Tab>("all");
+  const [avatar, setAvatar] = useState("U");
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    async function loadUser() {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/me`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (!res.ok) {
+          localStorage.removeItem("token");
+          router.push("/login");
+          return;
+        }
+
+        const user = await res.json();
+
+        setAvatar(user?.email?.[0]?.toUpperCase() || "U");
+      } catch {
+        setAvatar("U");
+      }
+    }
+
+    loadUser();
+  }, [router]);
+
+  function logout() {
+    localStorage.removeItem("token");
+    router.push("/login");
+  }
+
+  const tabs: {
+    id: Tab;
+    label: string;
+    count: number;
+  }[] = [
+    { id: "all", label: "All", count: 0 },
+    { id: "completed", label: "Completed", count: 0 },
+    { id: "processing", label: "Processing", count: 0 },
+    { id: "refunds", label: "Refunds", count: 0 },
+    { id: "cancelled", label: "Cancelled", count: 0 },
+  ];
+
+  return (
+    <>
+      {/* Same navigation as Dashboard */}
+      <nav className="dash">
+        <div className="nav-left">
+          <div
+            className="burger"
+            onClick={() => setDrawerOpen(true)}
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+
+        <div className="logo">
+          <span className="mark">S</span>
+          StacksLogs
+        </div>
+
+        <div className="nav-right">
+          <div className="avatar">{avatar}</div>
+        </div>
+      </nav>
+
+      <div
+        className={`drawer-overlay ${
+          drawerOpen ? "open" : ""
+        }`}
+        onClick={() => setDrawerOpen(false)}
+      />
+
+      <aside className={`drawer ${drawerOpen ? "open" : ""}`}>
+        <div className="drawer-head">
+          <div className="logo">
+            <span className="mark">S</span>
+            StacksLogs
+          </div>
+
+          <div
+            className="drawer-close"
+            onClick={() => setDrawerOpen(false)}
+          >
+            ✕
+          </div>
+        </div>
+
+        <div className="drawer-section-label">Home</div>
+
+        <Link
+          href="/dashboard"
+          className="drawer-item"
+          onClick={() => setDrawerOpen(false)}
+        >
+          Dashboard
+        </Link>
+
+        <div className="drawer-section-label">Account</div>
+
+        <Link
+          href="/orders"
+          className="drawer-item active"
+          onClick={() => setDrawerOpen(false)}
+        >
+          My orders
+        </Link>
+
+        <Link
+          href="/wallet"
+          className="drawer-item"
+          onClick={() => setDrawerOpen(false)}
+        >
+          Add funds
+        </Link>
+
+        <div className="drawer-item">
+          Settings
+        </div>
+
+        <div className="drawer-item">
+          Customer care
+        </div>
+
+        <div className="drawer-spacer"></div>
+
+        <div className="drawer-logout">
+          <div
+            className="drawer-item"
+            onClick={logout}
+          >
+            Logout
+          </div>
+        </div>
+      </aside>
+
+      {/* Orders content */}
+      <main className="dash-main orders-main">
         <div className="orders-head-card">
           <div className="orders-head-icon">
             <svg
@@ -166,7 +329,8 @@ export default function OrdersPage() {
               }`}
               onClick={() => setActiveTab(tab.id)}
             >
-              {tab.label} <span className="mono">· {tab.count}</span>
+              {tab.label}{" "}
+              <span className="mono">· {tab.count}</span>
             </button>
           ))}
         </div>
@@ -182,7 +346,13 @@ export default function OrdersPage() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <rect x="3" y="7" width="18" height="13" rx="2" />
+                <rect
+                  x="3"
+                  y="7"
+                  width="18"
+                  height="13"
+                  rx="2"
+                />
                 <path d="M8 7V5a4 4 0 0 1 8 0v2" />
               </svg>
             </div>
@@ -200,7 +370,13 @@ export default function OrdersPage() {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <rect x="3" y="7" width="18" height="13" rx="2" />
+                <rect
+                  x="3"
+                  y="7"
+                  width="18"
+                  height="13"
+                  rx="2"
+                />
                 <path d="M8 7V5a4 4 0 0 1 8 0v2" />
               </svg>
             </div>
@@ -208,8 +384,8 @@ export default function OrdersPage() {
             <h3>No orders yet</h3>
 
             <p>
-              You haven&apos;t bought any accounts yet. Explore the catalog to
-              get started.
+              You haven&apos;t bought any accounts yet. Explore the
+              catalog to get started.
             </p>
 
             <Link href="/dashboard" className="btn btn-blue">
