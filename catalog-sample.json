@@ -1,0 +1,24 @@
+{
+  "product_id": 27,
+  "name": "Instagram | 2FA is enabled. Registration year: 2015. Verified by email. Registration country: MIX.",
+  "price": "2.00",
+  "currency": "USD",
+  "stock": 102,
+  "min_order": 1,
+  "max_order": null,
+  "sales_count": 293,
+  "category_id": 35,
+  "category_name": "Aged",
+  "description": "Instagram accounts.\nVerified by email, email access is not included.\nThe profile is partially filled or empty.\nRegistration year: 2015.\nTwo-factor authentication is enabled.\nAccount gender: male or female.\nRegistration country: MIX.\nFormat: login|password|2FA\n\n- FAQ\nLogin using 2FA:\nThe account format contains a generation key for 2FA.\nOpen the website https://2fa.uihtm.com/en/ and paste the 2FA key into the corresponding field. After that, the website will show a six-digit 2FA code that updates every 30 seconds.\nCopy the current six-digit code and enter it when logging into the account if the system requests two-factor authentication.\n\n- Rules\nThe account verification time is 1 hour from the moment of purchase.\nInitial account verification is performed by login.\nWhen working with multiple accounts, different proxies or devices must be used.\nAfter receiving the product, the buyer bears full responsibility for the further use of the account.\nThe store is not responsible for account blocks caused by improper use of accounts, including violation of usage rules, use of low-quality proxies, mass actions, spam activity, or other actions that may trigger restrictions from the platform’s security system.\n\n- Refund Policy\nReplacement is provided if, during the initial verification, the account does not appear in search or the login data (login/password/email login/email password/2FA) is incorrect.\nReplacement is possible only if the warranty period from the moment of purchase has not expired.\nReplacement is provided if the account is not working due to the supplier’s fault.\nAccounts in which data has been changed (password, email, phone number, or other parameters) are not eligible for return or replacement.\nA refund may be issued to the personal account balance if replacement of the account is not possible.",
+  "country": "vn",
+  "image_url": "https://datamollcore.com/static/avatars/27/9b487bca.png",
+  "content_language": "en",
+  "available_languages": [
+    "ru",
+    "en",
+    "vi",
+    "zh"
+  ],
+  "fallback_applied": false,
+  "updated_at": "2026-09-06T19:23:50Z"
+}

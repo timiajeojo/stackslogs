@@ -9,6 +9,7 @@ import "dotenv/config";
 import { db } from "./db";
 import { users } from "./db/schema";
 import { eq } from "drizzle-orm";
+import { getDatamollClient } from "./services/datamoll.service";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -32,4 +33,15 @@ app.get("/api/me", requireAuth, async (req: AuthRequest, res) => {
 });
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+app.get("/api/categories", async (req, res) => {
+  try {
+    const datamoll = await getDatamollClient();
+    const { data } = await datamoll.listCategories({ language: "en" });
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch categories" });
+  }
 });
