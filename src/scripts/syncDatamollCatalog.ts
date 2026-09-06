@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { db } from "../db";
 import { listings } from "../db/schema";
-import { datamoll } from "../services/datamoll.service";
+import { getDatamollClient } from "../services/datamoll.service";
 
 const platformMap: Record<string, "instagram" | "tiktok" | "twitter" | "youtube" | "other"> = {
   instagram: "instagram",
@@ -12,6 +12,7 @@ const platformMap: Record<string, "instagram" | "tiktok" | "twitter" | "youtube"
 };
 
 async function syncCatalog() {
+  const datamoll = await getDatamollClient();
   const { data } = await datamoll.listCatalog({
     language: "en",
     only_in_stock: true,

@@ -37,22 +37,57 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
+var db_1 = require("../db");
+var schema_1 = require("../db/schema");
 var datamoll_service_1 = require("../services/datamoll.service");
-function test() {
+var platformMap = {
+    instagram: "instagram",
+    tiktok: "tiktok",
+    twitter: "twitter",
+    x: "twitter",
+    youtube: "youtube",
+};
+function syncCatalog() {
+    var _a;
     return __awaiter(this, void 0, void 0, function () {
-        var datamoll, data;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var datamoll, data, _i, _b, item, platform;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
                 case 0: return [4 /*yield*/, (0, datamoll_service_1.getDatamollClient)()];
                 case 1:
-                    datamoll = _a.sent();
-                    return [4 /*yield*/, datamoll.listCatalog({ language: "en", only_in_stock: true })];
+                    datamoll = _c.sent();
+                    return [4 /*yield*/, datamoll.listCatalog({
+                            language: "en",
+                            only_in_stock: true,
+                        })];
                 case 2:
-                    data = (_a.sent()).data;
-                    console.log(JSON.stringify(data, null, 2));
+                    data = (_c.sent()).data;
+                    _i = 0, _b = data.items;
+                    _c.label = 3;
+                case 3:
+                    if (!(_i < _b.length)) return [3 /*break*/, 6];
+                    item = _b[_i];
+                    platform = platformMap[(_a = item.category) === null || _a === void 0 ? void 0 : _a.toLowerCase()] || "other";
+                    return [4 /*yield*/, db_1.db.insert(schema_1.listings).values({
+                            sellerId: process.env.DATAMOLL_SELLER_ID,
+                            platform: platform,
+                            title: item.name,
+                            description: item.description || null,
+                            followers: item.followers || 0,
+                            price: Math.round(item.price * 100),
+                            status: "available",
+                        })];
+                case 4:
+                    _c.sent();
+                    _c.label = 5;
+                case 5:
+                    _i++;
+                    return [3 /*break*/, 3];
+                case 6:
+                    console.log("Synced ".concat(data.items.length, " items from Datamoll"));
                     return [2 /*return*/];
             }
         });
     });
 }
-test().catch(console.error);
+syncCatalog().catch(console.error);
