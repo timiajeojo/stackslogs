@@ -80,16 +80,22 @@ export default function Dashboard() {
   }
 
   const filtered = listings.filter((l) => {
-    const matchesCategory = category === "all" || l.platform === category;
-    const matchesSearch = l.title.toLowerCase().includes(search.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  const matchesCategory = category === "all" || l.platform === category;
+  const matchesSearch = l.title.toLowerCase().includes(search.toLowerCase());
+  return matchesCategory && matchesSearch;
+});
 
-  const platformGroups = categories.reduce<Record<string, DatamollCategory[]>>((acc, c) => {
+const grouped = filtered.reduce<Record<string, Listing[]>>((acc, l) => {
+  (acc[l.platform] ||= []).push(l);
+  return acc;
+}, {});
+
+const platformGroups = categories.reduce<Record<string, DatamollCategory[]>>((acc, c) => {
   (acc[c.parent_name] ||= []).push(c);
   return acc;
 }, {});
 
+  
      if (loading) {
   return (
     <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
