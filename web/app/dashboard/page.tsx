@@ -20,8 +20,6 @@ interface DatamollCategory {
   product_count: number;
 }
 
-const [categories, setCategories] = useState<DatamollCategory[]>([]);
-
 const platformMeta: Record<string, string> = {
   instagram: "IG",
   tiktok: "TT",
@@ -35,7 +33,7 @@ export default function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [user, setUser] = useState<{ email: string; firstName: string; balance: number } | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
-  const [categories, setCategories] = useState<DatamollCategory[]>([]);   // ← add it here instead
+  const [categories, setCategories] = useState<DatamollCategory[]>([]);
   const [category, setCategory] = useState("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
