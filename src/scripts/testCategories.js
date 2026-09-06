@@ -35,31 +35,24 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
-    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
-        if (ar || !(i in from)) {
-            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
-            ar[i] = from[i];
-        }
-    }
-    return to.concat(ar || Array.prototype.slice.call(from));
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
 var datamoll_service_1 = require("../services/datamoll.service");
 function test() {
+    var _a, _b;
     return __awaiter(this, void 0, void 0, function () {
-        var datamoll, data, categories;
-        return __generator(this, function (_a) {
-            switch (_a.label) {
+        var datamoll, data;
+        return __generator(this, function (_c) {
+            switch (_c.label) {
                 case 0: return [4 /*yield*/, (0, datamoll_service_1.getDatamollClient)()];
                 case 1:
-                    datamoll = _a.sent();
+                    datamoll = _c.sent();
                     return [4 /*yield*/, datamoll.listCatalog({ language: "en", only_in_stock: true })];
                 case 2:
-                    data = (_a.sent()).data;
-                    categories = __spreadArray([], new Set(data.items.map(function (item) { return item.category; })), true);
-                    console.log(JSON.stringify(categories, null, 2));
+                    data = (_c.sent()).data;
+                    console.log(JSON.stringify((_a = data.items) === null || _a === void 0 ? void 0 : _a[0], null, 2));
+                    console.log("Total items:", (_b = data.items) === null || _b === void 0 ? void 0 : _b.length);
+                    console.log("Top-level keys:", Object.keys(data));
                     return [2 /*return*/];
             }
         });
