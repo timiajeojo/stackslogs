@@ -40,11 +40,14 @@ require("dotenv/config");
 var datamoll_service_1 = require("../services/datamoll.service");
 function test() {
     return __awaiter(this, void 0, void 0, function () {
-        var data;
+        var datamoll, data;
         return __generator(this, function (_a) {
             switch (_a.label) {
-                case 0: return [4 /*yield*/, datamoll_service_1.datamoll.listCatalog({ language: "en", only_in_stock: true })];
+                case 0: return [4 /*yield*/, (0, datamoll_service_1.getDatamollClient)()];
                 case 1:
+                    datamoll = _a.sent();
+                    return [4 /*yield*/, datamoll.listCatalog({ language: "en", only_in_stock: true })];
+                case 2:
                     data = (_a.sent()).data;
                     console.log(JSON.stringify(data, null, 2));
                     return [2 /*return*/];
