@@ -123,7 +123,13 @@ export default function Dashboard() {
               >
              Add funds
            </Link>
-        <div className="drawer-item">Settings</div>
+           <Link
+            href="/settings"
+            className="drawer-item"
+            onClick={() => setDrawerOpen(false)}
+              >
+              Settings
+              </Link>
         <div className="drawer-item">Customer care</div>
         <div className="drawer-spacer"></div>
         <div className="drawer-logout">
