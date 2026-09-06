@@ -12,6 +12,16 @@ interface Listing {
   status: string;
 }
 
+interface DatamollCategory {
+  category_id: number;
+  name: string;
+  parent_id: number;
+  parent_name: string;
+  product_count: number;
+}
+
+const [categories, setCategories] = useState<DatamollCategory[]>([]);
+
 const platformMeta: Record<string, string> = {
   instagram: "IG",
   tiktok: "TT",
@@ -37,27 +47,29 @@ export default function Dashboard() {
     }
 
     async function load() {
-      try {
-        const [meRes, listingsRes] = await Promise.all([
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/me`, {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/listings`),
-        ]);
+  try {
+    const [meRes, listingsRes, categoriesRes] = await Promise.all([
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/listings`),
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`),
+    ]);
 
-        if (!meRes.ok) {
-          localStorage.removeItem("token");
-          router.push("/login");
-          return;
-        }
+    if (!meRes.ok) {
+      localStorage.removeItem("token");
+      router.push("/login");
+      return;
+    }
 
-        const userData = await meRes.json();
-        console.log("Dashboard user:", userData);
-        setUser(userData);
-        setListings(await listingsRes.json());
-      } finally {
-        setLoading(false);
-      }
+    setUser(await meRes.json());
+    setListings(await listingsRes.json());
+
+    const catData = await categoriesRes.json();
+    setCategories(catData.items || []);
+  } finally {
+    setLoading(false);
+  }
     }
     load();
   }, [router]);
@@ -73,10 +85,10 @@ export default function Dashboard() {
     return matchesCategory && matchesSearch;
   });
 
-  const grouped = filtered.reduce<Record<string, Listing[]>>((acc, l) => {
-    (acc[l.platform] ||= []).push(l);
-    return acc;
-  }, {});
+  const platformGroups = categories.reduce<Record<string, DatamollCategory[]>>((acc, c) => {
+  (acc[c.parent_name] ||= []).push(c);
+  return acc;
+}, {});
 
      if (loading) {
   return (
@@ -151,14 +163,19 @@ export default function Dashboard() {
 
         <div className="filter-row">
           <div className="select-shell">
-            <select value={category} onChange={(e) => setCategory(e.target.value)}>
-              <option value="all">All categories</option>
-              <option value="instagram">Instagram</option>
-              <option value="tiktok">TikTok</option>
-              <option value="twitter">X</option>
-              <option value="youtube">YouTube</option>
-            </select>
-          </div>
+             <select value={category} onChange={(e) => setCategory(e.target.value)}>
+             <option value="all">All categories</option>
+              {Object.entries(platformGroups).map(([platform, subs]) => (
+               <optgroup label={platform} key={platform}>
+               {subs.map((c) => (
+              <option value={String(c.category_id)} key={c.category_id}>
+                {c.name} ({c.product_count})
+               </option>
+                  ))}
+                 </optgroup>
+                   ))}
+                 </select>
+                 </div>
           <input
             className="search-input"
             placeholder="Search accounts..."
