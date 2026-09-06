@@ -35,59 +35,34 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
+var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
+    if (pack || arguments.length === 2) for (var i = 0, l = from.length, ar; i < l; i++) {
+        if (ar || !(i in from)) {
+            if (!ar) ar = Array.prototype.slice.call(from, 0, i);
+            ar[i] = from[i];
+        }
+    }
+    return to.concat(ar || Array.prototype.slice.call(from));
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
-var db_1 = require("../db");
-var schema_1 = require("../db/schema");
 var datamoll_service_1 = require("../services/datamoll.service");
-var platformMap = {
-    instagram: "instagram",
-    tiktok: "tiktok",
-    twitter: "twitter",
-    x: "twitter",
-    youtube: "youtube",
-};
-function syncCatalog() {
-    var _a;
+function test() {
     return __awaiter(this, void 0, void 0, function () {
-        var datamoll, data, _i, _b, item, platform;
-        return __generator(this, function (_c) {
-            switch (_c.label) {
+        var datamoll, data, categories;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
                 case 0: return [4 /*yield*/, (0, datamoll_service_1.getDatamollClient)()];
                 case 1:
-                    datamoll = _c.sent();
-                    return [4 /*yield*/, datamoll.listCatalog({
-                            language: "en",
-                            only_in_stock: true,
-                        })];
+                    datamoll = _a.sent();
+                    return [4 /*yield*/, datamoll.listCatalog({ language: "en", only_in_stock: true })];
                 case 2:
-                    data = (_c.sent()).data;
-                    _i = 0, _b = data.items;
-                    _c.label = 3;
-                case 3:
-                    if (!(_i < _b.length)) return [3 /*break*/, 6];
-                    item = _b[_i];
-                    platform = platformMap[(_a = item.category) === null || _a === void 0 ? void 0 : _a.toLowerCase()] || "other";
-                    return [4 /*yield*/, db_1.db.insert(schema_1.listings).values({
-                            sellerId: process.env.DATAMOLL_SELLER_ID,
-                            platform: platform,
-                            title: item.name,
-                            description: item.description || null,
-                            followers: item.followers || 0,
-                            price: Math.round(item.price * 100),
-                            status: "available",
-                        })];
-                case 4:
-                    _c.sent();
-                    _c.label = 5;
-                case 5:
-                    _i++;
-                    return [3 /*break*/, 3];
-                case 6:
-                    console.log("Synced ".concat(data.items.length, " items from Datamoll"));
+                    data = (_a.sent()).data;
+                    categories = __spreadArray([], new Set(data.items.map(function (item) { return item.category; })), true);
+                    console.log(JSON.stringify(categories, null, 2));
                     return [2 /*return*/];
             }
         });
     });
 }
-syncCatalog().catch(console.error);
+test().catch(console.error);
