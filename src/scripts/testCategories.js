@@ -37,22 +37,23 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
+var fs = require("fs");
 var datamoll_service_1 = require("../services/datamoll.service");
 function test() {
-    var _a, _b;
+    var _a;
     return __awaiter(this, void 0, void 0, function () {
         var datamoll, data;
-        return __generator(this, function (_c) {
-            switch (_c.label) {
+        return __generator(this, function (_b) {
+            switch (_b.label) {
                 case 0: return [4 /*yield*/, (0, datamoll_service_1.getDatamollClient)()];
                 case 1:
-                    datamoll = _c.sent();
+                    datamoll = _b.sent();
                     return [4 /*yield*/, datamoll.listCatalog({ language: "en", only_in_stock: true })];
                 case 2:
-                    data = (_c.sent()).data;
-                    console.log(JSON.stringify((_a = data.items) === null || _a === void 0 ? void 0 : _a[0], null, 2));
-                    console.log("Total items:", (_b = data.items) === null || _b === void 0 ? void 0 : _b.length);
-                    console.log("Top-level keys:", Object.keys(data));
+                    data = (_b.sent()).data;
+                    fs.writeFileSync("catalog-sample.json", JSON.stringify((_a = data.items) === null || _a === void 0 ? void 0 : _a[0], null, 2));
+                    console.log("Saved first item to catalog-sample.json");
+                    console.log("Available client methods:", Object.getOwnPropertyNames(Object.getPrototypeOf(datamoll)));
                     return [2 /*return*/];
             }
         });
