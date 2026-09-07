@@ -36,6 +36,18 @@ app.listen(PORT, () => {
 });
 
 
+app.get("/api/categories", async (req, res) => {
+  try {
+    const datamoll = await getDatamollClient();
+    const { data } = await datamoll.listCategories({ language: "en" });
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch categories" });
+  }
+});
+
+
 app.get("/api/catalog", async (req, res) => {
   try {
     const datamoll = await getDatamollClient();
