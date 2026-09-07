@@ -104,6 +104,139 @@ const platformGroups = categories.reduce<Record<string, DatamollCategory[]>>((ac
 }
 
   return (
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+
+interface DatamollCategory {
+  category_id: number;
+  name: string;
+  parent_id: number;
+  parent_name: string;
+  product_count: number;
+}
+
+interface DatamollProduct {
+  product_id: number;
+  name: string;
+  price: string;
+  currency: string;
+  stock: number;
+  category_id: number;
+  category_name: string;
+  image_url: string;
+}
+
+const platformMeta: Record<string, string> = {
+  instagram: "IG",
+  tiktok: "TT",
+  twitter: "X",
+  telegram: "TG",
+  discord: "DC",
+  facebook: "FB",
+  youtube: "YT",
+  google: "GG",
+  snapchat: "SC",
+  steam: "ST",
+  outlook: "OL",
+  protonmail: "PM",
+};
+
+export default function Dashboard() {
+  const router = useRouter();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [user, setUser] = useState<{ email: string; firstName: string; balance: number } | null>(null);
+  const [catalogItems, setCatalogItems] = useState<DatamollProduct[]>([]);
+  const [categories, setCategories] = useState<DatamollCategory[]>([]);
+  const [category, setCategory] = useState("all");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  // Load user + categories once
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    async function loadInitial() {
+      const [meRes, categoriesRes] = await Promise.all([
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/categories`),
+      ]);
+
+      if (!meRes.ok) {
+        localStorage.removeItem("token");
+        router.push("/login");
+        return;
+      }
+
+      setUser(await meRes.json());
+      const catData = await categoriesRes.json();
+      setCategories(catData.items || []);
+    }
+    loadInitial();
+  }, [router]);
+
+  // Re-fetch live catalog whenever the selected category changes
+  useEffect(() => {
+    async function loadCatalog() {
+      setLoading(true);
+      try {
+        const url =
+          category === "all"
+            ? `${process.env.NEXT_PUBLIC_API_URL}/api/catalog`
+            : `${process.env.NEXT_PUBLIC_API_URL}/api/catalog?category_id=${category}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        setCatalogItems(data.items || []);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadCatalog();
+  }, [category]);
+
+  function logout() {
+    localStorage.removeItem("token");
+    router.push("/login");
+  }
+
+  const categoryLookup = categories.reduce<Record<number, DatamollCategory>>((acc, c) => {
+    acc[c.category_id] = c;
+    return acc;
+  }, {});
+
+  const filteredItems = catalogItems.filter((item) =>
+    item.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const grouped = filteredItems.reduce<Record<string, DatamollProduct[]>>((acc, item) => {
+    const platform = categoryLookup[item.category_id]?.parent_name || "Other";
+    (acc[platform] ||= []).push(item);
+    return acc;
+  }, {});
+
+  const platformGroups = categories.reduce<Record<string, DatamollCategory[]>>((acc, c) => {
+    (acc[c.parent_name] ||= []).push(c);
+    return acc;
+  }, {});
+
+  
+     if (loading) {
+  return (
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div className="logo"><span className="mark">S</span>StacksLogs</div>
+    </div>
+  );
+}
+
+  return (
     <>
       <nav className="dash">
         <div className="nav-left">
@@ -197,24 +330,29 @@ const platformGroups = categories.reduce<Record<string, DatamollCategory[]>>((ac
           <section className="cat-section" key={platform}>
             <div className="cat-head">
               <div className="cat-title">
-                <span className="cat-badge">{platformMeta[platform] || "?"}</span> {platform}
+                <span className="cat-badge">
+                  {platformMeta[platform.toLowerCase()] || platform.slice(0, 2).toUpperCase()}
+                </span>{" "}
+                {platform}
               </div>
             </div>
             <div className="card-row">
-              {items.map((l) => (
-                <div className="acc-card" key={l.id}>
+              {items.map((item) => (
+                <div className="acc-card" key={item.product_id}>
                   <div className="acc-top">
-                    <div className="acc-icon">{platformMeta[l.platform] || "?"}</div>
-                    <span className={`stock-pill ${l.status === "available" ? "in" : "out"}`}>
-                      {l.status === "available" ? "In stock" : "Sold out"}
+                    <div className="acc-icon">
+                      {platformMeta[platform.toLowerCase()] || platform.slice(0, 2).toUpperCase()}
+                    </div>
+                    <span className={`stock-pill ${item.stock > 0 ? "in" : "out"}`}>
+                      {item.stock > 0 ? "In stock" : "Sold out"}
                     </span>
                   </div>
-                  <div className="acc-name">{l.title}</div>
+                  <div className="acc-name">{item.name}</div>
                   <div className="acc-bottom">
                     <div className="price-block">
-                      <span className="price-now">₦{(l.price / 100).toLocaleString()}</span>
+                      <span className="price-now">${Number(item.price).toFixed(2)}</span>
                     </div>
-                    <button className="cart-btn" disabled={l.status !== "available"}>🛒</button>
+                    <button className="cart-btn" disabled={item.stock === 0}>🛒</button>
                   </div>
                 </div>
               ))}
