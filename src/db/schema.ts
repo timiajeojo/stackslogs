@@ -57,6 +57,8 @@ export const transactions = pgTable("transactions", {
   userId: uuid("user_id").notNull().references(() => users.id),
   type: transactionTypeEnum("type").notNull(),
   amount: integer("amount").notNull(), // positive or negative, in cents
+  status: transactionStatusEnum("status").notNull().default("completed"),
+  externalId: varchar("external_id", { length: 255 }),
   relatedOrderId: uuid("related_order_id").references(() => orders.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

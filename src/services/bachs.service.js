@@ -36,27 +36,44 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDatamollClient = void 0;
-var apiKey = process.env.DATAMOLL_PROVIDER_API_KEY;
-var apiSecret = process.env.DATAMOLL_PROVIDER_API_SECRET;
-if (!apiKey || !apiSecret) {
-    throw new Error("Set DATAMOLL_PROVIDER_API_KEY and DATAMOLL_PROVIDER_API_SECRET");
+exports.createCheckoutSession = void 0;
+var BACHS_API_URL = process.env.BACHS_API_URL || "https://sandbox-api.bachs.io";
+var BACHS_SECRET_KEY = process.env.BACHS_SECRET_KEY;
+if (!BACHS_SECRET_KEY) {
+    throw new Error("Set BACHS_SECRET_KEY");
 }
-var clientPromise = null;
-var dynamicImport = function (specifier) {
-    return eval("import(\"".concat(specifier, "\")"));
-};
-function getDatamollClient() {
+function createCheckoutSession(params) {
     return __awaiter(this, void 0, void 0, function () {
+        var res, text;
         return __generator(this, function (_a) {
-            if (!clientPromise) {
-                clientPromise = dynamicImport("@datamoll/provider-sdk").then(function (_a) {
-                    var DatamollProviderClient = _a.DatamollProviderClient;
-                    return new DatamollProviderClient({ apiKey: apiKey, apiSecret: apiSecret, defaultLanguage: "en" });
-                });
+            switch (_a.label) {
+                case 0: return [4 /*yield*/, fetch("".concat(BACHS_API_URL, "/v1/checkout-sessions"), {
+                        method: "POST",
+                        headers: {
+                            Authorization: "Bearer ".concat(BACHS_SECRET_KEY),
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            pricing: {
+                                currency: "NGN",
+                                amount: params.amountNaira.toFixed(2),
+                            },
+                            customer: { email: params.email },
+                            reference: params.reference,
+                            success_url: "".concat(process.env.FRONTEND_URL, "/wallet?status=success"),
+                            cancel_url: "".concat(process.env.FRONTEND_URL, "/wallet?status=cancelled"),
+                        }),
+                    })];
+                case 1:
+                    res = _a.sent();
+                    if (!!res.ok) return [3 /*break*/, 3];
+                    return [4 /*yield*/, res.text()];
+                case 2:
+                    text = _a.sent();
+                    throw new Error("Bachs checkout session failed: ".concat(res.status, " ").concat(text));
+                case 3: return [2 /*return*/, res.json()];
             }
-            return [2 /*return*/, clientPromise];
         });
     });
 }
-exports.getDatamollClient = getDatamollClient;
+exports.createCheckoutSession = createCheckoutSession;
