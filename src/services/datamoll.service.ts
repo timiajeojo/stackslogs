@@ -7,15 +7,14 @@ if (!apiKey || !apiSecret) {
 
 let clientPromise: Promise<any> | null = null;
 
+const dynamicImport = (specifier: string) =>
+  eval(`import("${specifier}")`) as Promise<any>;
+
 export async function getDatamollClient() {
   if (!clientPromise) {
-    clientPromise = import("@datamoll/provider-sdk").then(
-      ({ DatamollProviderClient }) =>
-        new DatamollProviderClient({
-          apiKey: apiKey!,
-          apiSecret: apiSecret!,
-          defaultLanguage: "en",
-        })
+    clientPromise = dynamicImport("@datamoll/provider-sdk").then(
+      ({ DatamollProviderClient }: any) =>
+        new DatamollProviderClient({ apiKey, apiSecret, defaultLanguage: "en" })
     );
   }
   return clientPromise;
