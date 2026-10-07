@@ -90,22 +90,27 @@ app.listen(PORT, function () {
 });
 app.get("/api/categories", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var datamoll, data, err_1;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
             case 0:
-                _a.trys.push([0, 3, , 4]);
+                _b.trys.push([0, 3, , 4]);
                 return [4 /*yield*/, (0, datamoll_service_1.getDatamollClient)()];
             case 1:
-                datamoll = _a.sent();
+                datamoll = _b.sent();
                 return [4 /*yield*/, datamoll.listCategories({ language: "en" })];
             case 2:
-                data = (_a.sent()).data;
+                data = (_b.sent()).data;
                 res.json(data);
                 return [3 /*break*/, 4];
             case 3:
-                err_1 = _a.sent();
+                err_1 = _b.sent();
                 console.error(err_1);
-                res.status(500).json({ error: "Failed to fetch categories" });
+                res.status(500).json({
+                    error: "Failed to fetch categories",
+                    detail: (err_1 === null || err_1 === void 0 ? void 0 : err_1.message) || String(err_1),
+                    data: ((_a = err_1 === null || err_1 === void 0 ? void 0 : err_1.response) === null || _a === void 0 ? void 0 : _a.data) || null,
+                });
                 return [3 /*break*/, 4];
             case 4: return [2 /*return*/];
         }
@@ -113,23 +118,28 @@ app.get("/api/categories", function (req, res) { return __awaiter(void 0, void 0
 }); });
 app.get("/api/catalog", function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
     var datamoll, categoryId, data, err_2;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
             case 0:
-                _a.trys.push([0, 3, , 4]);
+                _b.trys.push([0, 3, , 4]);
                 return [4 /*yield*/, (0, datamoll_service_1.getDatamollClient)()];
             case 1:
-                datamoll = _a.sent();
+                datamoll = _b.sent();
                 categoryId = req.query.category_id ? Number(req.query.category_id) : undefined;
                 return [4 /*yield*/, datamoll.listCatalog(__assign({ language: "en", only_in_stock: true }, (categoryId ? { category_id: categoryId } : {})))];
             case 2:
-                data = (_a.sent()).data;
+                data = (_b.sent()).data;
                 res.json(data);
                 return [3 /*break*/, 4];
             case 3:
-                err_2 = _a.sent();
+                err_2 = _b.sent();
                 console.error(err_2);
-                res.status(500).json({ error: "Failed to fetch catalog" });
+                res.status(500).json({
+                    error: "Failed to fetch catalog",
+                    detail: (err_2 === null || err_2 === void 0 ? void 0 : err_2.message) || String(err_2),
+                    data: ((_a = err_2 === null || err_2 === void 0 ? void 0 : err_2.response) === null || _a === void 0 ? void 0 : _a.data) || null,
+                });
                 return [3 /*break*/, 4];
             case 4: return [2 /*return*/];
         }

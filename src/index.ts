@@ -41,9 +41,13 @@ app.get("/api/categories", async (req, res) => {
     const datamoll = await getDatamollClient();
     const { data } = await datamoll.listCategories({ language: "en" });
     res.json(data);
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    res.status(500).json({ error: "Failed to fetch categories" });
+    res.status(500).json({
+      error: "Failed to fetch categories",
+      detail: err?.message || String(err),
+      data: err?.response?.data || null,
+    });
   }
 });
 
@@ -60,8 +64,12 @@ app.get("/api/catalog", async (req, res) => {
     });
 
     res.json(data);
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    res.status(500).json({ error: "Failed to fetch catalog" });
+    res.status(500).json({
+      error: "Failed to fetch catalog",
+      detail: err?.message || String(err),
+      data: err?.response?.data || null,
+    });
   }
 });
