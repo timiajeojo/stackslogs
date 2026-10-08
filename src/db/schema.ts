@@ -4,6 +4,7 @@ import { pgTable, uuid, varchar, text, integer, timestamp, pgEnum, boolean } fro
 export const listingStatusEnum = pgEnum("listing_status", ["available", "pending", "sold"]);
 export const orderStatusEnum = pgEnum("order_status", ["completed", "refunded", "disputed"]);
 export const transactionTypeEnum = pgEnum("transaction_type", ["deposit", "purchase", "refund", "adjustment"]);
+export const transactionStatusEnum = pgEnum("transaction_status", ["pending", "completed", "failed"]);
 export const platformEnum = pgEnum("platform", ["instagram", "tiktok", "twitter", "youtube", "other"]);
 
 // Users
