@@ -36,7 +36,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createCheckoutSession = void 0;
+exports.verifyBachsSignature = exports.createCheckoutSession = void 0;
+var crypto_1 = require("crypto");
 var BACHS_API_URL = process.env.BACHS_API_URL || "https://sandbox-api.bachs.io";
 var BACHS_SECRET_KEY = process.env.BACHS_SECRET_KEY;
 if (!BACHS_SECRET_KEY) {
@@ -77,3 +78,33 @@ function createCheckoutSession(params) {
     });
 }
 exports.createCheckoutSession = createCheckoutSession;
+function verifyBachsSignature(header, rawBody, secret, toleranceSeconds) {
+    if (toleranceSeconds === void 0) { toleranceSeconds = 300; }
+    var pairs = header.split(",").map(function (p) {
+        var i = p.indexOf("=");
+        return [p.slice(0, i), p.slice(i + 1)];
+    });
+    var t = pairs.find(function (_a) {
+        var k = _a[0];
+        return k === "t";
+    });
+    if (!t)
+        return false;
+    var timestamp = parseInt(t[1], 10);
+    if (!Number.isFinite(timestamp))
+        return false;
+    if (Math.abs(Date.now() / 1000 - timestamp) > toleranceSeconds)
+        return false;
+    var expected = Buffer.from(crypto_1.default.createHmac("sha256", secret).update("".concat(timestamp, ".")).update(rawBody).digest("hex"));
+    return pairs
+        .filter(function (_a) {
+        var k = _a[0];
+        return k === "v1";
+    })
+        .some(function (_a) {
+        var sig = _a[1];
+        var candidate = Buffer.from(sig);
+        return candidate.length === expected.length && crypto_1.default.timingSafeEqual(candidate, expected);
+    });
+}
+exports.verifyBachsSignature = verifyBachsSignature;

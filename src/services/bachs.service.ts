@@ -1,3 +1,4 @@
+import crypto from "crypto";
 const BACHS_API_URL = process.env.BACHS_API_URL || "https://sandbox-api.bachs.io";
 const BACHS_SECRET_KEY = process.env.BACHS_SECRET_KEY;
 
@@ -40,4 +41,34 @@ export async function createCheckoutSession(params: {
     expires_at: string;
     created_at: string;
   }>;
+}
+
+export function verifyBachsSignature(
+  header: string,
+  rawBody: Buffer,
+  secret: string,
+  toleranceSeconds = 300
+): boolean {
+  const pairs = header.split(",").map((p) => {
+    const i = p.indexOf("=");
+    return [p.slice(0, i), p.slice(i + 1)] as [string, string];
+  });
+
+  const t = pairs.find(([k]) => k === "t");
+  if (!t) return false;
+  const timestamp = parseInt(t[1], 10);
+  if (!Number.isFinite(timestamp)) return false;
+
+  if (Math.abs(Date.now() / 1000 - timestamp) > toleranceSeconds) return false;
+
+  const expected = Buffer.from(
+    crypto.createHmac("sha256", secret).update(`${timestamp}.`).update(rawBody).digest("hex")
+  );
+
+  return pairs
+    .filter(([k]) => k === "v1")
+    .some(([, sig]) => {
+      const candidate = Buffer.from(sig);
+      return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
+    });
 }
