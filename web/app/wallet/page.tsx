@@ -68,6 +68,15 @@ export default function WalletPage() {
     setDepositModalOpen(false);
   }
 
+  function closeDrawer() {
+  setDrawerOpen(false);
+  }
+
+function logout() {
+  localStorage.removeItem("token");
+  router.push("/login");
+  }
+
   async function confirmDeposit() {
     const amount = Number(depositAmount);
     if (!amount || amount <= 0) {
