@@ -86,11 +86,11 @@ export default function WalletPage() {
 
       const data = await res.json();
 
-      if (!res.ok) {
-        alert(data.error || "Failed to start payment.");
+            if (!res.ok) {
+        alert(`${data.error || "Failed to start payment."}\n\n${data.detail || ""}`);
         setFunding(false);
         return;
-      }
+            }
 
       window.location.href = data.checkout_url;
     } catch {
