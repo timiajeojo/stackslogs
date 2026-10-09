@@ -11,12 +11,14 @@ import { users, transactions } from "./db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { getDatamollClient } from "./services/datamoll.service";
 import { createCheckoutSession, verifyBachsSignature } from "./services/bachs.service";
+import walletRoutes from "./routes/wallet.routes";
 
 const app = express();
 app.set("trust proxy", 1);
 
 app.use(helmet());
 app.use(cors());
+app.use("/api/wallet", walletRoutes);
 
 app.post(
   "/webhooks/bachs",

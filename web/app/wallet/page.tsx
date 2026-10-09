@@ -4,6 +4,21 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+type Tx = {
+  id: string;
+  type: "deposit" | "purchase";
+  status: "success" | "failed" | "pending";
+  amount: number;
+  description?: string;
+  created_at: string;
+};
+
+const naira = (kobo: number) =>
+  (kobo / 100).toLocaleString("en-NG", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
 export default function WalletPage() {
   const router = useRouter();
 
@@ -13,6 +28,11 @@ export default function WalletPage() {
     const [funding, setFunding] = useState(false);
     const [depositModalOpen, setDepositModalOpen] = useState(false);
     const [depositAmount, setDepositAmount] = useState("");
+    const [totalDeposit, setTotalDeposit] = useState(0);
+    const [totalSpent, setTotalSpent] = useState(0);
+    const [transactions, setTransactions] = useState<Tx[]>([]);
+    const [txLoading, setTxLoading] = useState(true);
+    const [txError, setTxError] = useState(false);
   
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -47,7 +67,33 @@ export default function WalletPage() {
       }
     }
 
+    async function loadWallet() {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+
+        const res = await fetch(`${apiUrl}/api/wallet`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!res.ok) throw new Error("Failed to load wallet");
+
+        const data = await res.json();
+
+        setBalance(data.balance ?? 0);
+        setTotalDeposit(data.total_deposit ?? 0);
+        setTotalSpent(data.total_spent ?? 0);
+        setTransactions(data.transactions ?? []);
+      } catch {
+        setTxError(true);
+      } finally {
+        setTxLoading(false);
+      }
+    }
+
     loadUser();
+    loadWallet();
 
     const params = new URLSearchParams(window.location.search);
     const status = params.get("status");
@@ -69,12 +115,12 @@ export default function WalletPage() {
   }
 
   function closeDrawer() {
-  setDrawerOpen(false);
+    setDrawerOpen(false);
   }
 
-function logout() {
-  localStorage.removeItem("token");
-  router.push("/login");
+  function logout() {
+    localStorage.removeItem("token");
+    router.push("/login");
   }
 
   async function confirmDeposit() {
@@ -377,7 +423,7 @@ function logout() {
             </div>
 
               <div className="balance-stat-amount">
-              <span>₦</span>{(balance / 100).toLocaleString()}
+              <span>₦</span>{naira(balance)}
             </div>
 
             <div className="balance-stat-label">
@@ -402,7 +448,7 @@ function logout() {
             </div>
 
             <div className="balance-stat-amount">
-              <span>₦</span>0.00
+              <span>₦</span>{naira(totalDeposit)}
             </div>
 
             <div className="balance-stat-label">
@@ -427,7 +473,7 @@ function logout() {
             </div>
 
             <div className="balance-stat-amount">
-              <span>₦</span>0.00
+              <span>₦</span>{naira(totalSpent)}
             </div>
 
             <div className="balance-stat-label">
@@ -456,32 +502,67 @@ function logout() {
             <h2>Recent transactions</h2>
           </div>
 
-          <div className="empty-state">
-            <div className="empty-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect
-                  x="2.5"
-                  y="6"
-                  width="19"
-                  height="13"
-                  rx="2.5"
-                />
-                <path d="M16.5 12.5h.01" />
-                <path d="M2.5 10.5h19" />
-              </svg>
+          {txLoading ? (
+            <div className="empty-state">
+              <p>Loading transactions...</p>
             </div>
+          ) : txError ? (
+            <div className="empty-state">
+              <p>Couldn't load transactions. Please refresh.</p>
+            </div>
+          ) : transactions.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect
+                      x="2.5"
+                      y="6"
+                      width="19"
+                      height="13"
+                      rx="2.5"
+                    />
+                    <path d="M16.5 12.5h.01" />
+                    <path d="M2.5 10.5h19" />
+                  </svg>
+                </div>
 
-            <h3>No data available</h3>
+                <h3>No data available</h3>
 
-            <p>No transactions yet.</p>
-          </div>
+                <p>No transactions yet.</p>
+              </div>
+          ) : (
+            <ul className="tx-list">
+              {transactions.map((tx) => (
+                <li key={tx.id} className="tx-row">
+                  <div>
+                    <div className="tx-title">
+                      {tx.description ||
+                        (tx.type === "deposit" ? "Wallet deposit" : "Purchase")}
+                    </div>
+                    <div className="tx-date">
+                      {new Date(tx.created_at).toLocaleString()}
+                    </div>
+                  </div>
+
+                  <div className="tx-right">
+                    <div className={`tx-amount ${tx.type}`}>
+                      {tx.type === "deposit" ? "+" : "-"}₦{naira(tx.amount)}
+                    </div>
+                    <span className={`tx-status ${tx.status}`}>
+                      {tx.status}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </main>
 
