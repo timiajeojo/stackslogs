@@ -11,6 +11,8 @@ export default function WalletPage() {
     const [avatar, setAvatar] = useState("U");
     const [balance, setBalance] = useState(0);
     const [funding, setFunding] = useState(false);
+    const [depositModalOpen, setDepositModalOpen] = useState(false);
+    const [depositAmount, setDepositAmount] = useState("");
   
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -56,11 +58,18 @@ export default function WalletPage() {
     }
   }, [router]);
 
-  async function handleDeposit() {
-    const amountStr = window.prompt("Enter amount to deposit (NGN):");
-    if (!amountStr) return;
+      function openDepositModal() {
+    setDepositAmount("");
+    setDepositModalOpen(true);
+  }
 
-    const amount = Number(amountStr);
+  function closeDepositModal() {
+    if (funding) return;
+    setDepositModalOpen(false);
+  }
+
+  async function confirmDeposit() {
+    const amount = Number(depositAmount);
     if (!amount || amount <= 0) {
       alert("Enter a valid amount.");
       return;
@@ -86,26 +95,17 @@ export default function WalletPage() {
 
       const data = await res.json();
 
-            if (!res.ok) {
+      if (!res.ok) {
         alert(`${data.error || "Failed to start payment."}\n\n${data.detail || ""}`);
         setFunding(false);
         return;
-            }
+      }
 
       window.location.href = data.checkout_url;
     } catch {
       alert("Something went wrong. Try again.");
       setFunding(false);
     }
-  }
-
-  function closeDrawer() {
-    setDrawerOpen(false);
-  }
-
-  function logout() {
-    localStorage.removeItem("token");
-    router.push("/login");
   }
 
   return (
@@ -334,15 +334,15 @@ export default function WalletPage() {
             </p>
           </div>
 
-                    <button
+            <button
             className="btn btn-blue wallet-deposit-btn"
-            onClick={handleDeposit}
+            onClick={openDepositModal}
             disabled={funding}
           >
             {funding ? "Redirecting..." : "+ Deposit money"}
           </button>
         </div>
-
+          
         {/* Balance statistics */}
         <div className="balance-grid">
           <div className="balance-stat">
@@ -476,12 +476,78 @@ export default function WalletPage() {
         </div>
       </main>
 
-      <footer className="site-footer">
+            <footer className="site-footer">
         <div className="foot-inner">
           <span>© 2026 StacksLogs</span>
           <span>support@stackslogs.com</span>
         </div>
       </footer>
+
+      {depositModalOpen && (
+        <div className="modal-overlay" onClick={closeDepositModal}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>Deposit money</h3>
+              <button
+                className="modal-close"
+                onClick={closeDepositModal}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="modal-sub">
+              Enter the amount you want to add to your wallet.
+            </p>
+
+            <div className="modal-input-shell">
+              <span className="modal-input-prefix">₦</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min="1"
+                placeholder="0.00"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                autoFocus
+                disabled={funding}
+              />
+            </div>
+
+            <div className="modal-quick-amounts">
+              {[1000, 5000, 10000, 25000].map((amt) => (
+                <button
+                  key={amt}
+                  type="button"
+                  className="modal-quick-btn"
+                  onClick={() => setDepositAmount(String(amt))}
+                  disabled={funding}
+                >
+                  ₦{amt.toLocaleString()}
+                </button>
+              ))}
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="btn btn-ghost"
+                onClick={closeDepositModal}
+                disabled={funding}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-blue"
+                onClick={confirmDeposit}
+                disabled={funding}
+              >
+                {funding ? "Redirecting..." : "Continue"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
