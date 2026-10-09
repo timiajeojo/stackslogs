@@ -341,6 +341,7 @@ export default function WalletPage() {
           >
             {funding ? "Redirecting..." : "+ Deposit money"}
           </button>
+        </div>
 
         {/* Balance statistics */}
         <div className="balance-grid">
@@ -368,10 +369,6 @@ export default function WalletPage() {
 
               <div className="balance-stat-amount">
               <span>₦</span>{(balance / 100).toLocaleString()}
-            </div>
-
-            <div className="balance-stat-label">
-              Current balance
             </div>
 
             <div className="balance-stat-label">
