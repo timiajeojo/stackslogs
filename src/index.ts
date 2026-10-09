@@ -128,11 +128,11 @@ app.post("/api/wallet/fund", requireAuth, async (req: AuthRequest, res) => {
       .where(eq(transactions.id, txn.id));
 
     res.json({ checkout_url: session.checkout_url });
-    } catch (err: any) {
+      } catch (err: any) {
     console.error(err);
     res.status(500).json({
       error: "Failed to start payment",
-      detail: err?.message || String(err),
+      detail: err?.cause?.message || err?.message || String(err),
     });
   }
 });
