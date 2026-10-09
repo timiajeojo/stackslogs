@@ -7,9 +7,11 @@ import { useRouter } from "next/navigation";
 export default function WalletPage() {
   const router = useRouter();
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [avatar, setAvatar] = useState("U");
-
+    const [drawerOpen, setDrawerOpen] = useState(false);
+    const [avatar, setAvatar] = useState("U");
+    const [balance, setBalance] = useState(0);
+    const [funding, setFunding] = useState(false);
+  
   useEffect(() => {
     const token = localStorage.getItem("token");
 
@@ -34,16 +36,68 @@ export default function WalletPage() {
           return;
         }
 
-        const user = await response.json();
+                const user = await response.json();
 
         setAvatar(user?.email?.[0]?.toUpperCase() || "U");
+        setBalance(user?.balance || 0);
       } catch {
         setAvatar("U");
       }
     }
 
     loadUser();
+
+    const params = new URLSearchParams(window.location.search);
+    const status = params.get("status");
+    if (status === "success") {
+      alert("Payment received — your balance will update shortly once it's confirmed.");
+    } else if (status === "cancelled") {
+      alert("Payment was cancelled.");
+    }
   }, [router]);
+
+  async function handleDeposit() {
+    const amountStr = window.prompt("Enter amount to deposit (NGN):");
+    if (!amountStr) return;
+
+    const amount = Number(amountStr);
+    if (!amount || amount <= 0) {
+      alert("Enter a valid amount.");
+      return;
+    }
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    setFunding(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
+      const res = await fetch(`${apiUrl}/api/wallet/fund`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ amount }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Failed to start payment.");
+        setFunding(false);
+        return;
+      }
+
+      window.location.href = data.checkout_url;
+    } catch {
+      alert("Something went wrong. Try again.");
+      setFunding(false);
+    }
+  }
 
   function closeDrawer() {
     setDrawerOpen(false);
@@ -280,10 +334,13 @@ export default function WalletPage() {
             </p>
           </div>
 
-          <button className="btn btn-blue wallet-deposit-btn">
-            + Deposit money
+                    <button
+            className="btn btn-blue wallet-deposit-btn"
+            onClick={handleDeposit}
+            disabled={funding}
+          >
+            {funding ? "Redirecting..." : "+ Deposit money"}
           </button>
-        </div>
 
         {/* Balance statistics */}
         <div className="balance-grid">
@@ -309,8 +366,12 @@ export default function WalletPage() {
               </svg>
             </div>
 
-            <div className="balance-stat-amount">
-              <span>₦</span>0.00
+              <div className="balance-stat-amount">
+              <span>₦</span>{(balance / 100).toLocaleString()}
+            </div>
+
+            <div className="balance-stat-label">
+              Current balance
             </div>
 
             <div className="balance-stat-label">
