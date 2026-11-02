@@ -64,13 +64,14 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Transactions (wallet ledger)
 export const transactions = pgTable("transactions", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: integer("user_id").notNull(), // match the type of users.id
-  type: text("type").notNull(),         // "deposit" | "purchase"
-  status: text("status").notNull().default("pending"),
-  amount: integer("amount").notNull(),  // kobo
-  reference: text("reference").notNull().unique(),
-  description: text("description"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  type: transactionTypeEnum("type").notNull(),
+  amount: integer("amount").notNull(), // positive or negative, in cents
+  status: transactionStatusEnum("status").notNull().default("completed"),
+  externalId: varchar("external_id", { length: 255 }),
+  relatedOrderId: uuid("related_order_id").references(() => orders.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
