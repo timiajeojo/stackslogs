@@ -63,3 +63,14 @@ export const transactions = pgTable("transactions", {
   relatedOrderId: uuid("related_order_id").references(() => orders.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const transactions = pgTable("transactions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: integer("user_id").notNull(), // match the type of users.id
+  type: text("type").notNull(),         // "deposit" | "purchase"
+  status: text("status").notNull().default("pending"),
+  amount: integer("amount").notNull(),  // kobo
+  reference: text("reference").notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
