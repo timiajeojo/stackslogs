@@ -60,14 +60,3 @@ exports.transactions = (0, pg_core_1.pgTable)("transactions", {
     relatedOrderId: (0, pg_core_1.uuid)("related_order_id").references(function () { return exports.orders.id; }),
     createdAt: (0, pg_core_1.timestamp)("created_at").notNull().defaultNow(),
 });
-// Transactions (wallet ledger)
-exports.transactions = (0, pg_core_1.pgTable)("transactions", {
-    id: (0, pg_core_1.uuid)("id").defaultRandom().primaryKey(),
-    userId: (0, pg_core_1.uuid)("user_id").notNull().references(function () { return exports.users.id; }),
-    type: (0, exports.transactionTypeEnum)("type").notNull(),
-    amount: (0, pg_core_1.integer)("amount").notNull(),
-    status: (0, exports.transactionStatusEnum)("status").notNull().default("completed"),
-    externalId: (0, pg_core_1.varchar)("external_id", { length: 255 }),
-    relatedOrderId: (0, pg_core_1.uuid)("related_order_id").references(function () { return exports.orders.id; }),
-    createdAt: (0, pg_core_1.timestamp)("created_at").notNull().defaultNow(),
-});
