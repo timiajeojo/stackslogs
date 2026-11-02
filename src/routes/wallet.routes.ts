@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { getWallet } from "../controllers/wallet.controller";
-import { requireAuth } from "../middleware/auth"; // fix this line, see below
+import { requireAuth } from "../middleware/auth.middleware";
 
 const router = Router();
 
