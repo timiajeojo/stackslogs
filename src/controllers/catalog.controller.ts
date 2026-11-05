@@ -13,6 +13,7 @@ import {
   YpgPurchase,
   getListing,
   listCategories,
+  listSubcategories,
   listListings,
   purchase,
   sellPriceKobo,
@@ -40,10 +41,37 @@ function browseError(res: Response, err: unknown) {
 
 // ---- Browse (public) ----
 
+type Cat = { id: string | number; name: string };
+
+// YoungPG's exact category field names aren't documented, so accept the likely ones.
+function normCat(raw: any): Cat | null {
+  const id = raw?.id ?? raw?.category_id ?? raw?.subcategory_id;
+  const name = raw?.name ?? raw?.title ?? raw?.label;
+  return id === undefined || id === null || !name ? null : { id, name: String(name) };
+}
+
 export async function getCategories(_req: Request, res: Response) {
   try {
-    const data = await cached("categories", 5 * 60_000, () => listCategories());
-    res.json({ categories: data });
+    const categories = await cached("categories", 10 * 60_000, async () => {
+      const top = ((await listCategories()) as any[])
+        .map(normCat)
+        .filter((c): c is Cat => c !== null)
+        .slice(0, 40);
+
+      return Promise.all(
+        top.map(async (c) => {
+          try {
+            const subs = ((await listSubcategories(c.id)) as any[])
+              .map(normCat)
+              .filter((x): x is Cat => x !== null);
+            return { ...c, subcategories: subs };
+          } catch {
+            return { ...c, subcategories: [] as Cat[] };
+          }
+        })
+      );
+    });
+    res.json({ categories });
   } catch (err) {
     browseError(res, err);
   }

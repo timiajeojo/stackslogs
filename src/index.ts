@@ -10,7 +10,6 @@ import "dotenv/config";
 import { db } from "./db";
 import { users, transactions } from "./db/schema";
 import { eq, and, sql } from "drizzle-orm";
-import { getDatamollClient } from "./services/datamoll.service";
 import { createCheckoutSession, verifyBachsSignature } from "./services/bachs.service";
 import walletRoutes from "./routes/wallet.routes";
 
@@ -143,43 +142,4 @@ app.post("/api/wallet/fund", requireAuth, async (req: AuthRequest, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-});
-
-
-app.get("/api/categories", async (req, res) => {
-  try {
-    const datamoll = await getDatamollClient();
-    const { data } = await datamoll.listCategories({ language: "en" });
-    res.json(data);
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({
-      error: "Failed to fetch categories",
-      detail: err?.message || String(err),
-      data: err?.response?.data || null,
-    });
-  }
-});
-
-
-app.get("/api/catalog", async (req, res) => {
-  try {
-    const datamoll = await getDatamollClient();
-    const categoryId = req.query.category_id ? Number(req.query.category_id) : undefined;
-
-    const { data } = await datamoll.listCatalog({
-      language: "en",
-      only_in_stock: true,
-      ...(categoryId ? { category_id: categoryId } : {}),
-    });
-
-    res.json(data);
-  } catch (err: any) {
-    console.error(err);
-    res.status(500).json({
-      error: "Failed to fetch catalog",
-      detail: err?.message || String(err),
-      data: err?.response?.data || null,
-    });
-  }
 });
