@@ -1,74 +1,62 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "";
+const PREVIEW_LIMIT = 5;
 
 interface Product {
   slug: string;
   title: string;
   available_stock: number;
-  price: number; // kobo, already includes your markup
+  price: number; // kobo
 }
+
 interface StoreCategory {
   key: string;
   name: string;
   items: Product[];
 }
 
-const platformMeta: Record<string, string> = {
-  instagram: "IG",
-  tiktok: "TT",
-  twitter: "X",
-  telegram: "TG",
-  discord: "DC",
-  facebook: "FB",
-  fb: "FB",
+const categoryBadges: Record<string, string> = {
+  software: "SW",
   vpn: "VP",
-  email: "EM",
-  reddit: "RD",
-  threads: "TH",
-  dating: "DT",
-  streaming: "SS",
-  texting: "TX",
   tools: "TL",
-  youtube: "YT",
-  google: "GG",
-  snapchat: "SC",
-  steam: "ST",
-  outlook: "OL",
-  protonmail: "PM",
+  hosting: "HS",
+  design: "DS",
+  digital: "DG",
+  api: "API",
 };
 
 const naira = (kobo: number) =>
-  (kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  (kobo / 100).toLocaleString("en-NG", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
-function badge(title: string) {
-  const t = title.toLowerCase();
-  const hit = Object.keys(platformMeta).find((k) => t.includes(k));
-  return hit ? platformMeta[hit] : title.slice(0, 2).toUpperCase();
+function badge(name: string) {
+  const key = Object.keys(categoryBadges).find((item) =>
+    name.toLowerCase().includes(item)
+  );
+  return key ? categoryBadges[key] : name.slice(0, 2).toUpperCase();
 }
 
 export default function Dashboard() {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [user, setUser] = useState<{ email: string; firstName: string; balance: number } | null>(null);
+  const [user, setUser] = useState<{
+    email: string;
+    firstName: string;
+    balance: number;
+  } | null>(null);
   const [categories, setCategories] = useState<StoreCategory[]>([]);
-  const [selected, setSelected] = useState("all"); // "all" | category key
+  const [selected, setSelected] = useState("all");
   const [search, setSearch] = useState("");
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState(false);
 
-  // Buy popup
-  const [buyItem, setBuyItem] = useState<Product | null>(null);
-  const [qty, setQty] = useState(1);
-  const [buying, setBuying] = useState(false);
-  const [buyMsg, setBuyMsg] = useState<{ type: "error" | "info"; text: string } | null>(null);
-  const [accounts, setAccounts] = useState<string[] | null>(null);
-
-  // Load the user once
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -77,27 +65,33 @@ export default function Dashboard() {
     }
 
     async function loadUser() {
-      const meRes = await fetch(`${API}/api/me`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!meRes.ok) {
-        localStorage.removeItem("token");
+      try {
+        const response = await fetch(`${API}/api/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) {
+          localStorage.removeItem("token");
+          router.push("/login");
+          return;
+        }
+        setUser(await response.json());
+      } catch {
         router.push("/login");
-        return;
       }
-      setUser(await meRes.json());
     }
+
     loadUser();
   }, [router]);
 
-  // Load the curated storefront (categories with their accounts)
   useEffect(() => {
     async function loadCatalog() {
       setCatalogLoading(true);
       setCatalogError(false);
       try {
-        const res = await fetch(`${API}/api/catalog`);
-        if (!res.ok) throw new Error("catalog failed");
-        const data = await res.json();
-        setCategories(data.categories || []);
+        const response = await fetch(`${API}/api/catalog`);
+        if (!response.ok) throw new Error("Catalogue request failed");
+        const data = await response.json();
+        setCategories(Array.isArray(data.categories) ? data.categories : []);
       } catch {
         setCategories([]);
         setCatalogError(true);
@@ -105,6 +99,7 @@ export default function Dashboard() {
         setCatalogLoading(false);
       }
     }
+
     loadCatalog();
   }, []);
 
@@ -113,100 +108,86 @@ export default function Dashboard() {
     router.push("/login");
   }
 
-  function openBuy(item: Product) {
-    setBuyItem(item);
-    setQty(1);
-    setBuyMsg(null);
-    setAccounts(null);
-  }
+  const query = search.trim().toLowerCase();
 
-  function closeBuy() {
-    setBuyItem(null);
-    setAccounts(null);
-    setBuyMsg(null);
-  }
-
-  async function buy() {
-    if (!buyItem || buying) return;
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    setBuying(true);
-    setBuyMsg(null);
-    try {
-      const res = await fetch(`${API}/api/catalog/purchase`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ slug: buyItem.slug, quantity: qty }),
-      });
-      const data = await res.json().catch(() => ({}));
-
-      if (res.status === 201) {
-        setAccounts(data.accounts || []);
-        setUser((u) => (u ? { ...u, balance: data.new_balance } : u));
-        setCategories((cats) =>
-          cats.map((c) => ({
-            ...c,
-            items: c.items.map((p) =>
-              p.slug === buyItem.slug ? { ...p, available_stock: Math.max(p.available_stock - qty, 0) } : p
-            ),
-          }))
+  const visibleCategories = useMemo(() => {
+    return categories
+      .filter((category) => selected === "all" || category.key === selected)
+      .map((category) => {
+        const matchingItems = category.items.filter(
+          (item) => !query || item.title.toLowerCase().includes(query)
         );
-      } else if (res.status === 202) {
-        setBuyMsg({ type: "info", text: data.message || "Your order is being confirmed. Check My orders shortly." });
-      } else {
-        setBuyMsg({ type: "error", text: data.error || "Purchase failed. Please try again." });
-      }
-    } catch {
-      setBuyMsg({ type: "error", text: "Network error. Check My orders before trying again." });
-    } finally {
-      setBuying(false);
-    }
-  }
+
+        // Category previews show five products. Search and an opened category
+        // show every matching product so results are not hidden.
+        const showAll = Boolean(query) || selected !== "all";
+        return {
+          ...category,
+          items: showAll
+            ? matchingItems
+            : matchingItems.slice(0, PREVIEW_LIMIT),
+          matchingCount: matchingItems.length,
+        };
+      })
+      .filter((category) => category.items.length > 0);
+  }, [categories, query, selected]);
 
   if (!user) {
     return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div className="logo"><span className="mark">S</span>StacksLogs</div>
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "var(--bg)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div className="logo">
+          <span className="mark">S</span>StacksLogs
+        </div>
       </div>
     );
   }
-
-  const query = search.trim().toLowerCase();
-  const visible = categories
-    .filter((c) => selected === "all" || c.key === selected)
-    .map((c) => ({
-      ...c,
-      items: c.items.filter((i) => !query || i.title.toLowerCase().includes(query)),
-    }))
-    .filter((c) => c.items.length > 0);
-
-  const total = buyItem ? buyItem.price * qty : 0;
-  const cannotAfford = buyItem ? total > user.balance : false;
-  const maxQty = buyItem ? Math.min(buyItem.available_stock, 50) : 1;
 
   return (
     <>
       <nav className="dash">
         <div className="nav-left">
-          <div className="burger" onClick={() => setDrawerOpen(true)}>
+          <button
+            type="button"
+            className="burger"
+            aria-label="Open navigation"
+            onClick={() => setDrawerOpen(true)}
+          >
             <span></span><span></span><span></span>
-          </div>
+          </button>
         </div>
-        <div className="logo"><span className="mark">S</span>StacksLogs</div>
+        <div className="logo">
+          <span className="mark">S</span>StacksLogs
+        </div>
         <div className="nav-right">
           <div className="avatar">{user.email?.[0]?.toUpperCase() || "U"}</div>
         </div>
       </nav>
 
-      <div className={`drawer-overlay ${drawerOpen ? "open" : ""}`} onClick={() => setDrawerOpen(false)} />
+      <div
+        className={`drawer-overlay ${drawerOpen ? "open" : ""}`}
+        onClick={() => setDrawerOpen(false)}
+      />
       <aside className={`drawer ${drawerOpen ? "open" : ""}`}>
         <div className="drawer-head">
-          <div className="logo"><span className="mark">S</span>StacksLogs</div>
-          <div className="drawer-close" onClick={() => setDrawerOpen(false)}>✕</div>
+          <div className="logo">
+            <span className="mark">S</span>StacksLogs
+          </div>
+          <button
+            type="button"
+            className="drawer-close"
+            aria-label="Close navigation"
+            onClick={() => setDrawerOpen(false)}
+          >
+            ✕
+          </button>
         </div>
         <div className="drawer-section-label">Home</div>
         <div className="drawer-item active">Dashboard</div>
@@ -223,15 +204,21 @@ export default function Dashboard() {
         <div className="drawer-item">Customer care</div>
         <div className="drawer-spacer"></div>
         <div className="drawer-logout">
-          <div className="drawer-item" onClick={logout}>Logout</div>
+          <button type="button" className="drawer-item" onClick={logout}>
+            Logout
+          </button>
         </div>
       </aside>
 
       <main className="dash-main">
         <div className="balance-card">
           <div>
-            <div className="greeting">Welcome back, <strong>{user.firstName}</strong></div>
-            <div className="amount"><span className="cur">₦</span>{naira(user.balance || 0)}</div>
+            <div className="greeting">
+              Welcome back, <strong>{user.firstName}</strong>
+            </div>
+            <div className="amount">
+              <span className="cur">₦</span>{naira(user.balance || 0)}
+            </div>
           </div>
           <div className="balance-actions">
             <Link href="/wallet" className="btn btn-blue">Fund wallet</Link>
@@ -239,50 +226,99 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="filter-row">
-          <div className="select-shell">
-            <select value={selected} onChange={(e) => setSelected(e.target.value)}>
-              <option value="all">All categories</option>
-              {categories.map((c) => (
-                <option value={c.key} key={c.key}>
-                  {c.name} ({c.items.length})
-                </option>
-              ))}
-            </select>
+        <section className="catalogue">
+          <div className="catalogue-heading">
+            <div>
+              <h1>Digital Products</h1>
+              <p>Browse the products and services currently available.</p>
+            </div>
+            {selected !== "all" && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setSelected("all")}
+              >
+                ← All categories
+              </button>
+            )}
           </div>
-          <input
-            className="search-input"
-            placeholder="Search accounts..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
 
-        {catalogLoading && <p style={{ color: "var(--text-muted)" }}>Loading accounts...</p>}
+          <div className="filter-row">
+            <div className="select-shell">
+              <select
+                aria-label="Filter by category"
+                value={selected}
+                onChange={(event) => setSelected(event.target.value)}
+              >
+                <option value="all">All categories</option>
+                {categories.map((category) => (
+                  <option value={category.key} key={category.key}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <input
+              className="search-input"
+              type="search"
+              aria-label="Search products"
+              placeholder="Search products..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+        </section>
 
-        {!catalogLoading && catalogError && (
-          <p style={{ color: "var(--text-muted)" }}>Couldn't load accounts right now. Please refresh in a moment.</p>
+        {catalogLoading && (
+          <p style={{ color: "var(--text-muted)" }}>Loading products...</p>
         )}
 
-        {!catalogLoading && !catalogError && visible.length === 0 && (
-          <p style={{ color: "var(--text-muted)" }}>No accounts match your filters yet.</p>
+        {!catalogLoading && catalogError && (
+          <p style={{ color: "var(--text-muted)" }}>
+            Couldn't load products right now. Please refresh in a moment.
+          </p>
+        )}
+
+        {!catalogLoading && !catalogError && visibleCategories.length === 0 && (
+          <p style={{ color: "var(--text-muted)" }}>
+            {categories.length === 0
+              ? "No approved products are currently available."
+              : "No products match your search or category."}
+          </p>
         )}
 
         {!catalogLoading &&
-          visible.map((cat) => (
-            <section className="cat-section" key={cat.key}>
+          !catalogError &&
+          visibleCategories.map((category) => (
+            <section className="cat-section" key={category.key}>
               <div className="cat-head">
                 <div className="cat-title">
-                  <span className="cat-badge">{badge(cat.name)}</span> {cat.name}
+                  <span className="cat-badge">{badge(category.name)}</span>
+                  {category.name}
                 </div>
+                {!query && selected === "all" && category.matchingCount > PREVIEW_LIMIT && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => {
+                      setSelected(category.key);
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  >
+                    View all ({category.matchingCount})
+                  </button>
+                )}
               </div>
+
               <div className="card-row">
-                {cat.items.map((item) => (
-                  <div className="acc-card" key={item.slug}>
+                {category.items.map((item) => (
+                  <article className="acc-card" key={item.slug}>
                     <div className="acc-top">
-                      <div className="acc-icon">{badge(cat.name)}</div>
+                      <div className="acc-icon">{badge(category.name)}</div>
                       <span className={`stock-pill ${item.available_stock > 0 ? "in" : "out"}`}>
-                        {item.available_stock > 0 ? `${item.available_stock} in stock` : "Sold out"}
+                        {item.available_stock > 0
+                          ? `${item.available_stock} available`
+                          : "Out of stock"}
                       </span>
                     </div>
                     <div className="acc-name">{item.title}</div>
@@ -290,109 +326,16 @@ export default function Dashboard() {
                       <div className="price-block">
                         <span className="price-now">₦{naira(item.price)}</span>
                       </div>
-                      <button
-                        className="cart-btn"
-                        disabled={item.available_stock === 0}
-                        onClick={() => openBuy(item)}
-                      >
-                        🛒
-                      </button>
+                      <span className="stock-pill">
+                        {item.available_stock > 0 ? "Available" : "Unavailable"}
+                      </span>
                     </div>
-                  </div>
+                  </article>
                 ))}
               </div>
             </section>
           ))}
       </main>
-
-      {buyItem && (
-        <div
-          onClick={closeBuy}
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 100,
-            display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 12,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: "100%", maxWidth: 440, maxHeight: "85vh", overflowY: "auto",
-              background: "var(--card, #141a2b)", color: "var(--text, #fff)",
-              border: "1px solid rgba(128,128,128,0.25)", borderRadius: 16, padding: 18,
-            }}
-          >
-            {accounts ? (
-              <>
-                <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6 }}>Purchase complete</div>
-                <p style={{ color: "var(--text-muted)", fontSize: 13, margin: "0 0 10px" }}>
-                  Your accounts are below and saved in My orders.
-                </p>
-                <pre
-                  style={{
-                    background: "rgba(128,128,128,0.12)", padding: 12, borderRadius: 10,
-                    fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0,
-                  }}
-                >
-                  {accounts.join("\n")}
-                </pre>
-                <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                  <button
-                    className="btn btn-blue"
-                    onClick={() => navigator.clipboard.writeText(accounts.join("\n"))}
-                  >
-                    Copy all
-                  </button>
-                  <button className="btn btn-ghost" onClick={closeBuy}>Done</button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 6 }}>Buy accounts</div>
-                <p style={{ margin: "0 0 12px", fontSize: 14 }}>{buyItem.title}</p>
-
-                <label style={{ fontSize: 13, color: "var(--text-muted)" }}>Quantity</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={maxQty}
-                  value={qty}
-                  onChange={(e) => setQty(Math.min(Math.max(Number(e.target.value) || 1, 1), maxQty))}
-                  className="search-input"
-                  style={{ width: "100%", margin: "6px 0 12px" }}
-                />
-
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, marginBottom: 4 }}>
-                  <span>Price each</span><span>₦{naira(buyItem.price)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontWeight: 700, marginBottom: 4 }}>
-                  <span>Total</span><span>₦{naira(total)}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "var(--text-muted)" }}>
-                  <span>Your balance</span><span>₦{naira(user.balance)}</span>
-                </div>
-
-                {cannotAfford && (
-                  <p style={{ fontSize: 13, margin: "12px 0 0" }}>
-                    Not enough balance. <Link href="/wallet" style={{ textDecoration: "underline" }}>Fund your wallet</Link>
-                  </p>
-                )}
-                {buyMsg && (
-                  <p style={{ fontSize: 13, margin: "12px 0 0", color: buyMsg.type === "error" ? "#f87171" : "inherit" }}>
-                    {buyMsg.text}
-                  </p>
-                )}
-
-                <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-                  <button className="btn btn-blue" disabled={buying || cannotAfford} onClick={buy}>
-                    {buying ? "Processing..." : `Pay ₦${naira(total)}`}
-                  </button>
-                  <button className="btn btn-ghost" onClick={closeBuy} disabled={buying}>Cancel</button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       <footer className="site-footer">
         <div className="foot-inner">
@@ -400,6 +343,7 @@ export default function Dashboard() {
           <span>support@stackslogs.com</span>
         </div>
       </footer>
+
     </>
   );
 }
