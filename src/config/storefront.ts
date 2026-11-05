@@ -145,12 +145,6 @@ export const STOREFRONT: StorefrontCategory[] = [
     ],
   },
   {
-    key: "tools-update",
-    name: "Tools/Update",
-    supplierCategory: "Tools/update",
-    exclude: ["Get access to an editing tools to edit to convince your working client like paper holding,background changing,Frame on wall etc"],
-  },
-  {
     key: "threads",
     name: "Threads",
     items: [

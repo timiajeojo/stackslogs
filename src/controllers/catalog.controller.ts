@@ -58,7 +58,7 @@ function normCat(raw: any): Cat | null {
 }
 const notNull = <T,>(x: T | null): x is T => x !== null;
 
-/** Fetches every page of a listings query (YoungPG caps pages at 100). */
+/** Fetches every page of a listings query. Stops on an empty page, so it works even if YoungPG caps page size below 100. */
 async function fetchPaged(base: ListingsQuery): Promise<YpgListing[]> {
   const out = new Map<string, YpgListing>();
   let prevFirst = "";
@@ -68,7 +68,6 @@ async function fetchPaged(base: ListingsQuery): Promise<YpgListing[]> {
     if (data[0].slug === prevFirst) break; // the API ignored `page`
     prevFirst = data[0].slug;
     data.forEach((p) => out.set(p.slug, p));
-    if (data.length < 100) break;
   }
   return [...out.values()];
 }
@@ -111,6 +110,26 @@ function findProduct(all: YpgListing[], wanted: string): YpgListing | "ambiguous
   return loose.length > 1 ? "ambiguous" : undefined;
 }
 
+/** For diagnostics only: the catalog title most similar to a wanted one. */
+function closest(all: YpgListing[], wanted: string): string {
+  const wt = new Set(norm(wanted).split(" "));
+  let best = "";
+  let bestScore = 0;
+  for (const p of all) {
+    const tokens = new Set(norm(titleOf(p)).split(" "));
+    let inter = 0;
+    wt.forEach((x) => {
+      if (tokens.has(x)) inter++;
+    });
+    const score = inter / (wt.size + tokens.size - inter);
+    if (score > bestScore) {
+      bestScore = score;
+      best = titleOf(p);
+    }
+  }
+  return bestScore >= 0.4 ? best.slice(0, 90) : "nothing similar";
+}
+
 function isExcluded(title: string, exclude: string[]) {
   const t = norm(title);
   return exclude.some((ex) => {
@@ -121,6 +140,7 @@ function isExcluded(title: string, exclude: string[]) {
 
 type StoreProduct = { slug: string; title: string; available_stock: number; price: number };
 type Built = {
+  fetched: number;
   categories: { key: string; name: string; items: StoreProduct[] }[];
   slugs: Set<string>;
   problems: string[];
@@ -147,7 +167,7 @@ async function buildStorefront(): Promise<Built> {
       for (const wanted of cat.items) {
         const found = findProduct(all, wanted.title);
         if (!found) {
-          problems.push(`${cat.name}: no match for "${wanted.title.slice(0, 70)}"`);
+          problems.push(`${cat.name}: no match for "${wanted.title.slice(0, 70)}" (closest: "${closest(all, wanted.title)}")`);
         } else if (found === "ambiguous") {
           problems.push(`${cat.name}: several matches for "${wanted.title.slice(0, 70)}"`);
         } else {
@@ -178,7 +198,8 @@ async function buildStorefront(): Promise<Built> {
   if (problems.length) console.warn("Storefront problems:\n" + problems.join("\n"));
 
   const slugs = new Set(categories.flatMap((c) => c.items.map((i) => i.slug)));
-  return { categories, slugs, problems };
+  console.warn(`Storefront: YoungPG returned ${all.length} listings`);
+  return { fetched: all.length, categories, slugs, problems };
 }
 
 function getStorefront(): Promise<Built> {
@@ -207,6 +228,7 @@ export async function storefrontCheck(req: AuthRequest, res: Response) {
   try {
     const built = await getStorefront();
     res.json({
+      fetched: built.fetched,
       problems: built.problems,
       categories: built.categories.map((c) => ({ name: c.name, count: c.items.length })),
     });
