@@ -6,18 +6,16 @@ import Link from "next/link";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "";
 
-interface Cat {
-  id: string | number;
-  name: string;
-}
-interface Category extends Cat {
-  subcategories: Cat[];
-}
 interface Product {
   slug: string;
   title: string;
   available_stock: number;
   price: number; // kobo, already includes your markup
+}
+interface StoreCategory {
+  key: string;
+  name: string;
+  items: Product[];
 }
 
 const platformMeta: Record<string, string> = {
@@ -27,6 +25,15 @@ const platformMeta: Record<string, string> = {
   telegram: "TG",
   discord: "DC",
   facebook: "FB",
+  fb: "FB",
+  vpn: "VP",
+  email: "EM",
+  reddit: "RD",
+  threads: "TH",
+  dating: "DT",
+  streaming: "SS",
+  texting: "TX",
+  tools: "TL",
   youtube: "YT",
   google: "GG",
   snapchat: "SC",
@@ -48,11 +55,9 @@ export default function Dashboard() {
   const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [user, setUser] = useState<{ email: string; firstName: string; balance: number } | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selected, setSelected] = useState("all"); // "all" | "c:<id>" | "s:<id>"
+  const [categories, setCategories] = useState<StoreCategory[]>([]);
+  const [selected, setSelected] = useState("all"); // "all" | category key
   const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [items, setItems] = useState<Product[]>([]);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState(false);
 
@@ -63,7 +68,7 @@ export default function Dashboard() {
   const [buyMsg, setBuyMsg] = useState<{ type: "error" | "info"; text: string } | null>(null);
   const [accounts, setAccounts] = useState<string[] | null>(null);
 
-  // Load user + categories once
+  // Load the user once
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -71,65 +76,37 @@ export default function Dashboard() {
       return;
     }
 
-    async function loadInitial() {
-      const [meRes, catRes] = await Promise.all([
-        fetch(`${API}/api/me`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/api/catalog/categories`),
-      ]);
-
+    async function loadUser() {
+      const meRes = await fetch(`${API}/api/me`, { headers: { Authorization: `Bearer ${token}` } });
       if (!meRes.ok) {
         localStorage.removeItem("token");
         router.push("/login");
         return;
       }
-
       setUser(await meRes.json());
-      if (catRes.ok) {
-        const catData = await catRes.json();
-        setCategories(catData.categories || []);
-      }
     }
-    loadInitial();
+    loadUser();
   }, [router]);
 
-  // Debounce search so we don't hit the API on every keystroke
+  // Load the curated storefront (categories with their accounts)
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
-    return () => clearTimeout(t);
-  }, [search]);
-
-  // Load products whenever the category or search changes
-  useEffect(() => {
-    let cancelled = false;
-
     async function loadCatalog() {
       setCatalogLoading(true);
       setCatalogError(false);
       try {
-        const params = new URLSearchParams({ per_page: "100" });
-        if (selected.startsWith("c:")) params.set("category_id", selected.slice(2));
-        if (selected.startsWith("s:")) params.set("subcategory_id", selected.slice(2));
-        if (debouncedSearch) params.set("search", debouncedSearch);
-
-        const res = await fetch(`${API}/api/catalog?${params.toString()}`);
+        const res = await fetch(`${API}/api/catalog`);
         if (!res.ok) throw new Error("catalog failed");
         const data = await res.json();
-        if (!cancelled) setItems(data.listings || []);
+        setCategories(data.categories || []);
       } catch {
-        if (!cancelled) {
-          setItems([]);
-          setCatalogError(true);
-        }
+        setCategories([]);
+        setCatalogError(true);
       } finally {
-        if (!cancelled) setCatalogLoading(false);
+        setCatalogLoading(false);
       }
     }
     loadCatalog();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selected, debouncedSearch]);
+  }, []);
 
   function logout() {
     localStorage.removeItem("token");
@@ -170,10 +147,13 @@ export default function Dashboard() {
       if (res.status === 201) {
         setAccounts(data.accounts || []);
         setUser((u) => (u ? { ...u, balance: data.new_balance } : u));
-        setItems((list) =>
-          list.map((p) =>
-            p.slug === buyItem.slug ? { ...p, available_stock: Math.max(p.available_stock - qty, 0) } : p
-          )
+        setCategories((cats) =>
+          cats.map((c) => ({
+            ...c,
+            items: c.items.map((p) =>
+              p.slug === buyItem.slug ? { ...p, available_stock: Math.max(p.available_stock - qty, 0) } : p
+            ),
+          }))
         );
       } else if (res.status === 202) {
         setBuyMsg({ type: "info", text: data.message || "Your order is being confirmed. Check My orders shortly." });
@@ -195,15 +175,14 @@ export default function Dashboard() {
     );
   }
 
-  const selectedName =
-    selected === "all"
-      ? "All accounts"
-      : categories
-          .flatMap((c) => [
-            { key: `c:${c.id}`, name: c.name },
-            ...c.subcategories.map((s) => ({ key: `s:${s.id}`, name: `${c.name} · ${s.name}` })),
-          ])
-          .find((o) => o.key === selected)?.name || "Accounts";
+  const query = search.trim().toLowerCase();
+  const visible = categories
+    .filter((c) => selected === "all" || c.key === selected)
+    .map((c) => ({
+      ...c,
+      items: c.items.filter((i) => !query || i.title.toLowerCase().includes(query)),
+    }))
+    .filter((c) => c.items.length > 0);
 
   const total = buyItem ? buyItem.price * qty : 0;
   const cannotAfford = buyItem ? total > user.balance : false;
@@ -264,18 +243,11 @@ export default function Dashboard() {
           <div className="select-shell">
             <select value={selected} onChange={(e) => setSelected(e.target.value)}>
               <option value="all">All categories</option>
-              {categories.map((c) =>
-                c.subcategories.length === 0 ? (
-                  <option value={`c:${c.id}`} key={`c:${c.id}`}>{c.name}</option>
-                ) : (
-                  <optgroup label={c.name} key={`c:${c.id}`}>
-                    <option value={`c:${c.id}`}>All {c.name}</option>
-                    {c.subcategories.map((s) => (
-                      <option value={`s:${s.id}`} key={`s:${s.id}`}>{s.name}</option>
-                    ))}
-                  </optgroup>
-                )
-              )}
+              {categories.map((c) => (
+                <option value={c.key} key={c.key}>
+                  {c.name} ({c.items.length})
+                </option>
+              ))}
             </select>
           </div>
           <input
@@ -292,42 +264,45 @@ export default function Dashboard() {
           <p style={{ color: "var(--text-muted)" }}>Couldn't load accounts right now. Please refresh in a moment.</p>
         )}
 
-        {!catalogLoading && !catalogError && items.length === 0 && (
+        {!catalogLoading && !catalogError && visible.length === 0 && (
           <p style={{ color: "var(--text-muted)" }}>No accounts match your filters yet.</p>
         )}
 
-        {!catalogLoading && items.length > 0 && (
-          <section className="cat-section">
-            <div className="cat-head">
-              <div className="cat-title">{selectedName}</div>
-            </div>
-            <div className="card-row">
-              {items.map((item) => (
-                <div className="acc-card" key={item.slug}>
-                  <div className="acc-top">
-                    <div className="acc-icon">{badge(item.title)}</div>
-                    <span className={`stock-pill ${item.available_stock > 0 ? "in" : "out"}`}>
-                      {item.available_stock > 0 ? `${item.available_stock} in stock` : "Sold out"}
-                    </span>
-                  </div>
-                  <div className="acc-name">{item.title}</div>
-                  <div className="acc-bottom">
-                    <div className="price-block">
-                      <span className="price-now">₦{naira(item.price)}</span>
-                    </div>
-                    <button
-                      className="cart-btn"
-                      disabled={item.available_stock === 0}
-                      onClick={() => openBuy(item)}
-                    >
-                      🛒
-                    </button>
-                  </div>
+        {!catalogLoading &&
+          visible.map((cat) => (
+            <section className="cat-section" key={cat.key}>
+              <div className="cat-head">
+                <div className="cat-title">
+                  <span className="cat-badge">{badge(cat.name)}</span> {cat.name}
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
+              </div>
+              <div className="card-row">
+                {cat.items.map((item) => (
+                  <div className="acc-card" key={item.slug}>
+                    <div className="acc-top">
+                      <div className="acc-icon">{badge(cat.name)}</div>
+                      <span className={`stock-pill ${item.available_stock > 0 ? "in" : "out"}`}>
+                        {item.available_stock > 0 ? `${item.available_stock} in stock` : "Sold out"}
+                      </span>
+                    </div>
+                    <div className="acc-name">{item.title}</div>
+                    <div className="acc-bottom">
+                      <div className="price-block">
+                        <span className="price-now">₦{naira(item.price)}</span>
+                      </div>
+                      <button
+                        className="cart-btn"
+                        disabled={item.available_stock === 0}
+                        onClick={() => openBuy(item)}
+                      >
+                        🛒
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
       </main>
 
       {buyItem && (

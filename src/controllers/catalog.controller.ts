@@ -6,6 +6,7 @@ import { db } from "../db";
 import { users, transactions, supplierOrders } from "../db/schema";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { encrypt, decrypt } from "../utils/crypto";
+import { STOREFRONT } from "../config/storefront";
 import {
   YoungPgError,
   ListingsQuery,
@@ -18,17 +19,18 @@ import {
   purchase,
   sellPriceKobo,
   ngnToKobo,
-  toStorefrontListing,
 } from "../services/youngpg.service";
 
 // ---- tiny in-memory cache (keeps us under YoungPG's 60 requests/min limit) ----
-const cache = new Map<string, { exp: number; val: unknown }>();
-async function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
+// Caches the promise itself, so simultaneous visitors share one supplier request.
+const cache = new Map<string, { exp: number; p: Promise<unknown> }>();
+function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
   const hit = cache.get(key);
-  if (hit && hit.exp > Date.now()) return hit.val as T;
-  const val = await fn();
-  cache.set(key, { exp: Date.now() + ttlMs, val });
-  return val;
+  if (hit && hit.exp > Date.now()) return hit.p as Promise<T>;
+  const p = fn();
+  cache.set(key, { exp: Date.now() + ttlMs, p });
+  p.catch(() => cache.delete(key));
+  return p;
 }
 
 function browseError(res: Response, err: unknown) {
@@ -39,7 +41,12 @@ function browseError(res: Response, err: unknown) {
   return res.status(502).json({ error: "Catalog is temporarily unavailable" });
 }
 
-// ---- Browse (public) ----
+// ---- Curated storefront ----
+
+const norm = (s: string) =>
+  s.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+const titleOf = (p: YpgListing) => String((p as any).title ?? (p as any).name ?? "");
 
 type Cat = { id: string | number; name: string };
 
@@ -49,63 +56,160 @@ function normCat(raw: any): Cat | null {
   const name = raw?.name ?? raw?.title ?? raw?.label;
   return id === undefined || id === null || !name ? null : { id, name: String(name) };
 }
+const notNull = <T,>(x: T | null): x is T => x !== null;
 
-export async function getCategories(_req: Request, res: Response) {
-  try {
-    const categories = await cached("categories", 10 * 60_000, async () => {
-      const top = ((await listCategories()) as any[])
-        .map(normCat)
-        .filter((c): c is Cat => c !== null)
-        .slice(0, 40);
-
-      return Promise.all(
-        top.map(async (c) => {
-          try {
-            const subs = ((await listSubcategories(c.id)) as any[])
-              .map(normCat)
-              .filter((x): x is Cat => x !== null);
-            return { ...c, subcategories: subs };
-          } catch {
-            return { ...c, subcategories: [] as Cat[] };
-          }
-        })
-      );
-    });
-    res.json({ categories });
-  } catch (err) {
-    browseError(res, err);
+/** Fetches every page of a listings query (YoungPG caps pages at 100). */
+async function fetchPaged(base: ListingsQuery): Promise<YpgListing[]> {
+  const out = new Map<string, YpgListing>();
+  let prevFirst = "";
+  for (let page = 1; page <= 30; page++) {
+    const { data } = await listListings({ ...base, per_page: 100, page });
+    if (!Array.isArray(data) || data.length === 0) break;
+    if (data[0].slug === prevFirst) break; // the API ignored `page`
+    prevFirst = data[0].slug;
+    data.forEach((p) => out.set(p.slug, p));
+    if (data.length < 100) break;
   }
+  return [...out.values()];
 }
 
-export async function getCatalog(req: Request, res: Response) {
-  const q = req.query;
-  const sorts = ["sort_key", "total_price", "available_stock", "title"] as const;
+/** Finds a YoungPG category (or subcategory) by name. */
+function resolveSupplierCategory(name: string) {
+  return cached(`resolve:${norm(name)}`, 30 * 60_000, async () => {
+    const target = norm(name);
+    const exact = (c: Cat) => norm(c.name) === target;
+    const loose = (c: Cat) => norm(c.name).includes(target);
 
-  const query: ListingsQuery = {
-    category_id: q.category_id as string | undefined,
-    subcategory_id: q.subcategory_id as string | undefined,
-    search: q.search as string | undefined,
-    sort: sorts.includes(q.sort as any) ? (q.sort as ListingsQuery["sort"]) : undefined,
-    direction: q.direction === "desc" ? "desc" : q.direction === "asc" ? "asc" : undefined,
-    per_page: Math.min(Math.max(Number(q.per_page) || 24, 1), 100),
-    page: Math.max(Number(q.page) || 1, 1),
+    const top = ((await listCategories()) as any[]).map(normCat).filter(notNull);
+    const hit = top.find(exact) ?? top.find(loose);
+    if (hit) return { param: "category_id" as const, id: hit.id };
+
+    for (const c of top.slice(0, 40)) {
+      try {
+        const subs = ((await listSubcategories(c.id)) as any[]).map(normCat).filter(notNull);
+        const s = subs.find(exact) ?? subs.find(loose);
+        if (s) return { param: "subcategory_id" as const, id: s.id };
+      } catch {
+        // skip a category whose subcategories fail to load
+      }
+    }
+    return null;
+  });
+}
+
+/** Exact match on normalized title, else a unique prefix match. */
+function findProduct(all: YpgListing[], wanted: string): YpgListing | "ambiguous" | undefined {
+  const w = norm(wanted);
+  const exact = all.filter((p) => norm(titleOf(p)) === w);
+  if (exact.length > 0) return exact.find((p) => p.available_stock > 0) ?? exact[0];
+
+  const loose = all.filter((p) => {
+    const t = norm(titleOf(p));
+    return t.startsWith(w) || (t.length > 20 && w.startsWith(t));
+  });
+  if (loose.length === 1) return loose[0];
+  return loose.length > 1 ? "ambiguous" : undefined;
+}
+
+function isExcluded(title: string, exclude: string[]) {
+  const t = norm(title);
+  return exclude.some((ex) => {
+    const e = norm(ex);
+    return t === e || (t.length > 30 && e.length > 30 && (t.startsWith(e) || e.startsWith(t)));
+  });
+}
+
+type StoreProduct = { slug: string; title: string; available_stock: number; price: number };
+type Built = {
+  categories: { key: string; name: string; items: StoreProduct[] }[];
+  slugs: Set<string>;
+  problems: string[];
+};
+
+function toStoreProduct(p: YpgListing, displayName?: string): StoreProduct {
+  return {
+    slug: p.slug,
+    title: displayName || titleOf(p),
+    available_stock: p.available_stock,
+    price: sellPriceKobo(p.price_ngn), // kobo, includes your markup; supplier cost is never exposed
   };
+}
 
+async function buildStorefront(): Promise<Built> {
+  const problems: string[] = [];
+  const all = await cached("all-listings", 90_000, () => fetchPaged({}));
+  const categories: Built["categories"] = [];
+
+  for (const cat of STOREFRONT) {
+    const items = new Map<string, StoreProduct>();
+
+    if ("items" in cat) {
+      for (const wanted of cat.items) {
+        const found = findProduct(all, wanted.title);
+        if (!found) {
+          problems.push(`${cat.name}: no match for "${wanted.title.slice(0, 70)}"`);
+        } else if (found === "ambiguous") {
+          problems.push(`${cat.name}: several matches for "${wanted.title.slice(0, 70)}"`);
+        } else {
+          items.set(found.slug, toStoreProduct(found, wanted.displayName));
+        }
+      }
+    } else {
+      try {
+        const ref = await resolveSupplierCategory(cat.supplierCategory);
+        if (!ref) {
+          problems.push(`${cat.name}: YoungPG category "${cat.supplierCategory}" not found`);
+        } else {
+          const list = await cached(`cat:${ref.param}:${ref.id}`, 90_000, () =>
+            fetchPaged({ [ref.param]: ref.id } as ListingsQuery)
+          );
+          list
+            .filter((p) => !isExcluded(titleOf(p), cat.exclude))
+            .forEach((p) => items.set(p.slug, toStoreProduct(p)));
+        }
+      } catch (err) {
+        problems.push(`${cat.name}: failed to load (${(err as Error).message})`);
+      }
+    }
+
+    if (items.size > 0) categories.push({ key: cat.key, name: cat.name, items: [...items.values()] });
+  }
+
+  if (problems.length) console.warn("Storefront problems:\n" + problems.join("\n"));
+
+  const slugs = new Set(categories.flatMap((c) => c.items.map((i) => i.slug)));
+  return { categories, slugs, problems };
+}
+
+function getStorefront(): Promise<Built> {
+  return cached("storefront", 90_000, buildStorefront);
+}
+
+// ---- Browse (public) ----
+
+export async function getCatalog(_req: Request, res: Response) {
   try {
-    const { data, meta } = await cached(`list:${JSON.stringify(query)}`, 60_000, () =>
-      listListings(query)
-    );
-    res.json({ listings: data.map(toStorefrontListing), meta });
+    const built = await getStorefront();
+    res.json({ categories: built.categories });
   } catch (err) {
     browseError(res, err);
   }
 }
 
-export async function getCatalogItem(req: Request, res: Response) {
-  const slug = String(req.params.slug);
+/** Admin only: shows which of your configured accounts could not be matched. */
+export async function storefrontCheck(req: AuthRequest, res: Response) {
+  const [me] = await db
+    .select({ isAdmin: users.isAdmin })
+    .from(users)
+    .where(eq(users.id, req.userId!));
+  if (!me?.isAdmin) return res.status(403).json({ error: "Forbidden" });
+
   try {
-    const listing = await cached(`item:${slug}`, 30_000, () => getListing(slug));
-    res.json(toStorefrontListing(listing));
+    const built = await getStorefront();
+    res.json({
+      problems: built.problems,
+      categories: built.categories.map((c) => ({ name: c.name, count: c.items.length })),
+    });
   } catch (err) {
     browseError(res, err);
   }
@@ -126,7 +230,15 @@ export async function purchaseAccounts(req: AuthRequest, res: Response) {
   const { slug, quantity } = parsed.data;
   const userId = req.userId!;
 
-  // 1. Price is always taken from the supplier at purchase time, never from the browser.
+  // 1. Only accounts on the curated storefront can be bought.
+  try {
+    const store = await getStorefront();
+    if (!store.slugs.has(slug)) return res.status(404).json({ error: "Product not found" });
+  } catch (err) {
+    return browseError(res, err);
+  }
+
+  // Price is always taken from the supplier at purchase time, never from the browser.
   let listing: YpgListing;
   try {
     listing = await getListing(slug);
