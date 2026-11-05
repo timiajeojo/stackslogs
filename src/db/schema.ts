@@ -63,3 +63,27 @@ export const transactions = pgTable("transactions", {
   relatedOrderId: uuid("related_order_id").references(() => orders.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+// Supplier (YoungPG Media) orders: accounts bought in bulk and resold
+export const supplierOrderStatusEnum = pgEnum("supplier_order_status", [
+  "processing",
+  "completed",
+  "failed",
+  "needs_review", // supplier result unknown; check before refunding or retrying
+]);
+
+export const supplierOrders = pgTable("supplier_orders", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  buyerId: uuid("buyer_id").notNull().references(() => users.id),
+  supplierSlug: varchar("supplier_slug", { length: 255 }).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  quantity: integer("quantity").notNull(),
+  unitPrice: integer("unit_price").notNull(), // kobo, what the buyer pays per account
+  pricePaid: integer("price_paid").notNull(), // kobo, total charged to the buyer
+  costKobo: integer("cost_kobo").notNull(), // kobo, what the supplier charged you (internal)
+  supplierOrderId: varchar("supplier_order_id", { length: 255 }),
+  encryptedAccounts: text("encrypted_accounts"), // AES-256-GCM encrypted JSON array
+  status: supplierOrderStatusEnum("status").notNull().default("processing"),
+  failureReason: text("failure_reason"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

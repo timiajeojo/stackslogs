@@ -1,4 +1,5 @@
 import express from "express";
+import catalogRoutes from "./routes/catalog.routes";
 import authRoutes from "./routes/auth.routes";
 import { requireAuth, AuthRequest } from "./middleware/auth.middleware";
 import cors from "cors";
@@ -81,6 +82,7 @@ app.post(
 );
 
 app.use(express.json());
+app.use("/api/catalog", catalogRoutes);
 app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100 }));
 
 app.get("/health", (req, res) => {
