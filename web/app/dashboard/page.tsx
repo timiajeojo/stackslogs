@@ -90,22 +90,40 @@ export default function Dashboard() {
 
   // Load the curated storefront (categories with their accounts)
   useEffect(() => {
+    let cancelled = false;
+
     async function loadCatalog() {
       setCatalogLoading(true);
       setCatalogError(false);
-      try {
-        const res = await fetch(`${API}/api/catalog`);
-        if (!res.ok) throw new Error("catalog failed");
-        const data = await res.json();
-        setCategories(data.categories || []);
-      } catch {
+      // Try up to 3 times, each with a 25s limit, so the page can never sit on "Loading" forever.
+      for (let attempt = 0; attempt < 3 && !cancelled; attempt++) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 25000);
+        try {
+          const res = await fetch(`${API}/api/catalog`, { signal: ctrl.signal });
+          if (!res.ok) throw new Error("catalog failed");
+          const data = await res.json();
+          if (cancelled) return;
+          setCategories(data.categories || []);
+          setCatalogLoading(false);
+          return;
+        } catch {
+          // wait a moment, then try again
+          await new Promise((r) => setTimeout(r, 2500));
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+      if (!cancelled) {
         setCategories([]);
         setCatalogError(true);
-      } finally {
         setCatalogLoading(false);
       }
     }
     loadCatalog();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function logout() {

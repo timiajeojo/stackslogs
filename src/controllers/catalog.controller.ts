@@ -72,25 +72,56 @@ async function fetchPaged(base: ListingsQuery): Promise<YpgListing[]> {
   return [...out.values()];
 }
 
+/** Rejects if the promise takes longer than `ms`, so one slow supplier call can't hang the whole storefront. */
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+    p.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      }
+    );
+  });
+}
+
+// "fb" / "faceb00k" -> "facebook" so "Asian Fb" matches "Asian Facebook" and vice versa.
+const catNorm = (s: string) => norm(s).replace(/\bfb\b/g, "facebook").replace(/\bfaceb00k\b/g, "facebook");
+
 /** Finds a YoungPG category (or subcategory) by name. */
 function resolveSupplierCategory(name: string) {
-  return cached(`resolve:${norm(name)}`, 30 * 60_000, async () => {
-    const target = norm(name);
-    const exact = (c: Cat) => norm(c.name) === target;
-    const loose = (c: Cat) => norm(c.name).includes(target);
+  return cached(`resolve:${catNorm(name)}`, 30 * 60_000, async () => {
+    const target = catNorm(name);
+    const targetTokens = target.split(" ");
+    const exact = (c: Cat) => catNorm(c.name) === target;
+    const loose = (c: Cat) => {
+      const tokens = new Set(catNorm(c.name).split(" "));
+      return targetTokens.every((x) => tokens.has(x));
+    };
 
     const top = ((await listCategories()) as any[]).map(normCat).filter(notNull);
     const hit = top.find(exact) ?? top.find(loose);
     if (hit) return { param: "category_id" as const, id: hit.id };
 
-    for (const c of top.slice(0, 40)) {
-      try {
-        const subs = ((await listSubcategories(c.id)) as any[]).map(normCat).filter(notNull);
-        const s = subs.find(exact) ?? subs.find(loose);
-        if (s) return { param: "subcategory_id" as const, id: s.id };
-      } catch {
-        // skip a category whose subcategories fail to load
-      }
+    // Scan subcategories a few at a time (sequential scanning made the first page load very slow).
+    const scan = top.slice(0, 30);
+    for (let i = 0; i < scan.length; i += 5) {
+      const results = await Promise.all(
+        scan.slice(i, i + 5).map(async (c) => {
+          try {
+            const subs = ((await listSubcategories(c.id)) as any[]).map(normCat).filter(notNull);
+            return subs.find(exact) ?? subs.find(loose) ?? null;
+          } catch {
+            return null; // skip a category whose subcategories fail to load
+          }
+        })
+      );
+      const s = results.find((r) => r !== null);
+      if (s) return { param: "subcategory_id" as const, id: s.id };
     }
     return null;
   });
@@ -176,7 +207,7 @@ async function buildStorefront(): Promise<Built> {
       }
     } else {
       try {
-        const ref = await resolveSupplierCategory(cat.supplierCategory);
+        const ref = await withTimeout(resolveSupplierCategory(cat.supplierCategory), 12_000, "Category lookup");
         if (!ref) {
           problems.push(`${cat.name}: YoungPG category "${cat.supplierCategory}" not found`);
         } else {
@@ -202,9 +233,22 @@ async function buildStorefront(): Promise<Built> {
   return { fetched: all.length, categories, slugs, problems };
 }
 
+// Keep the last good storefront so visitors never wait on a rebuild.
+let lastGood: Built | null = null;
+
 function getStorefront(): Promise<Built> {
-  return cached("storefront", 90_000, buildStorefront);
+  const build = cached("storefront", 90_000, async () => {
+    const b = await buildStorefront();
+    lastGood = b;
+    return b;
+  });
+  return lastGood ? Promise.resolve(lastGood) : build;
 }
+
+// Build it once shortly after the server starts, so the first visitor doesn't wait.
+setTimeout(() => {
+  getStorefront().catch((err) => console.error("Storefront warm-up failed:", err));
+}, 3000);
 
 // ---- Browse (public) ----
 
