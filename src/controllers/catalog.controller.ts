@@ -1,282 +1,466 @@
 // src/controllers/catalog.controller.ts
-//
-// Display-only YoungPG catalogue.
-// This controller intentionally does not purchase products, debit wallets,
-// create orders, retrieve orders, or return passwords/tokens/cookies/credentials.
-//
-// A category must explicitly set `enabled: true` in storefront.ts and contain
-// a curated `items` array. Broad supplier-category imports are not displayed.
-// This keeps the public catalogue limited to products reviewed for eligibility.
-
 import { Request, Response } from "express";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { z } from "zod";
+import { db } from "../db";
+import { users, transactions, supplierOrders } from "../db/schema";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { encrypt, decrypt } from "../utils/crypto";
 import { STOREFRONT } from "../config/storefront";
 import {
   YoungPgError,
   ListingsQuery,
   YpgListing,
+  YpgPurchase,
+  getListing,
+  listCategories,
+  listSubcategories,
   listListings,
+  purchase,
   sellPriceKobo,
+  ngnToKobo,
 } from "../services/youngpg.service";
 
-type StoreProduct = {
-  slug: string;
-  title: string;
-  available_stock: number;
-  price: number;
-};
+// ---- tiny in-memory cache (keeps us under YoungPG's 60 requests/min limit) ----
+// Caches the promise itself, so simultaneous visitors share one supplier request.
+const cache = new Map<string, { exp: number; p: Promise<unknown> }>();
+function cached<T>(key: string, ttlMs: number, fn: () => Promise<T>): Promise<T> {
+  const hit = cache.get(key);
+  if (hit && hit.exp > Date.now()) return hit.p as Promise<T>;
+  const p = fn();
+  cache.set(key, { exp: Date.now() + ttlMs, p });
+  p.catch(() => cache.delete(key));
+  return p;
+}
 
-type StoreCategory = {
-  key: string;
-  name: string;
-  items: StoreProduct[];
-};
+function browseError(res: Response, err: unknown) {
+  if (err instanceof YoungPgError && err.status === 404) {
+    return res.status(404).json({ error: "Product not found" });
+  }
+  console.error("Catalog error:", err);
+  return res.status(502).json({ error: "Catalog is temporarily unavailable" });
+}
 
-type BuiltStorefront = {
+// ---- Curated storefront ----
+
+const norm = (s: string) =>
+  s.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+const titleOf = (p: YpgListing) => String((p as any).title ?? (p as any).name ?? "");
+
+type Cat = { id: string | number; name: string };
+
+// YoungPG's exact category field names aren't documented, so accept the likely ones.
+function normCat(raw: any): Cat | null {
+  const id = raw?.id ?? raw?.category_id ?? raw?.subcategory_id;
+  const name = raw?.name ?? raw?.title ?? raw?.label;
+  return id === undefined || id === null || !name ? null : { id, name: String(name) };
+}
+const notNull = <T,>(x: T | null): x is T => x !== null;
+
+/** Fetches every page of a listings query. Stops on an empty page, so it works even if YoungPG caps page size below 100. */
+async function fetchPaged(base: ListingsQuery): Promise<YpgListing[]> {
+  const out = new Map<string, YpgListing>();
+  let prevFirst = "";
+  for (let page = 1; page <= 30; page++) {
+    const { data } = await listListings({ ...base, per_page: 100, page });
+    if (!Array.isArray(data) || data.length === 0) break;
+    if (data[0].slug === prevFirst) break; // the API ignored `page`
+    prevFirst = data[0].slug;
+    data.forEach((p) => out.set(p.slug, p));
+  }
+  return [...out.values()];
+}
+
+/** Finds a YoungPG category (or subcategory) by name. */
+function resolveSupplierCategory(name: string) {
+  return cached(`resolve:${norm(name)}`, 30 * 60_000, async () => {
+    const target = norm(name);
+    const exact = (c: Cat) => norm(c.name) === target;
+    const loose = (c: Cat) => norm(c.name).includes(target);
+
+    const top = ((await listCategories()) as any[]).map(normCat).filter(notNull);
+    const hit = top.find(exact) ?? top.find(loose);
+    if (hit) return { param: "category_id" as const, id: hit.id };
+
+    for (const c of top.slice(0, 40)) {
+      try {
+        const subs = ((await listSubcategories(c.id)) as any[]).map(normCat).filter(notNull);
+        const s = subs.find(exact) ?? subs.find(loose);
+        if (s) return { param: "subcategory_id" as const, id: s.id };
+      } catch {
+        // skip a category whose subcategories fail to load
+      }
+    }
+    return null;
+  });
+}
+
+/** Exact match on normalized title, else a unique prefix match. */
+function findProduct(all: YpgListing[], wanted: string): YpgListing | "ambiguous" | undefined {
+  const w = norm(wanted);
+  const exact = all.filter((p) => norm(titleOf(p)) === w);
+  if (exact.length > 0) return exact.find((p) => p.available_stock > 0) ?? exact[0];
+
+  const loose = all.filter((p) => {
+    const t = norm(titleOf(p));
+    return t.startsWith(w) || (t.length > 20 && w.startsWith(t));
+  });
+  if (loose.length === 1) return loose[0];
+  return loose.length > 1 ? "ambiguous" : undefined;
+}
+
+/** For diagnostics only: the catalog title most similar to a wanted one. */
+function closest(all: YpgListing[], wanted: string): string {
+  const wt = new Set(norm(wanted).split(" "));
+  let best = "";
+  let bestScore = 0;
+  for (const p of all) {
+    const tokens = new Set(norm(titleOf(p)).split(" "));
+    let inter = 0;
+    wt.forEach((x) => {
+      if (tokens.has(x)) inter++;
+    });
+    const score = inter / (wt.size + tokens.size - inter);
+    if (score > bestScore) {
+      bestScore = score;
+      best = titleOf(p);
+    }
+  }
+  return bestScore >= 0.4 ? best.slice(0, 90) : "nothing similar";
+}
+
+function isExcluded(title: string, exclude: string[]) {
+  const t = norm(title);
+  return exclude.some((ex) => {
+    const e = norm(ex);
+    return t === e || (t.length > 30 && e.length > 30 && (t.startsWith(e) || e.startsWith(t)));
+  });
+}
+
+type StoreProduct = { slug: string; title: string; available_stock: number; price: number };
+type Built = {
   fetched: number;
-  categories: StoreCategory[];
+  categories: { key: string; name: string; items: StoreProduct[] }[];
+  slugs: Set<string>;
   problems: string[];
 };
 
-// Cache supplier requests so visitors share the same in-flight request.
-const cache = new Map<string, { expiresAt: number; promise: Promise<unknown> }>();
-
-function cached<T>(
-  key: string,
-  ttlMs: number,
-  fetcher: () => Promise<T>,
-): Promise<T> {
-  const existing = cache.get(key);
-
-  if (existing && existing.expiresAt > Date.now()) {
-    return existing.promise as Promise<T>;
-  }
-
-  const promise = fetcher();
-  cache.set(key, { expiresAt: Date.now() + ttlMs, promise });
-
-  promise.catch(() => {
-    cache.delete(key);
-  });
-
-  return promise;
-}
-
-function normaliseTitle(value: unknown): string {
-  return String(value ?? "")
-    .normalize("NFKD")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
-
-function supplierTitle(listing: YpgListing): string {
-  const raw = listing as any;
-  return String(raw.title ?? raw.name ?? "").trim();
-}
-
-function safeText(value: unknown, maxLength = 240): string {
-  if (typeof value !== "string") return "";
-  return value.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, maxLength);
-}
-
-/**
- * Fetch all supplier listing pages.
- * Stops on an empty page or repeated first slug in case the supplier ignores
- * the page parameter.
- */
-async function fetchAllListings(query: ListingsQuery = {}): Promise<YpgListing[]> {
-  const listings = new Map<string, YpgListing>();
-  let previousFirstSlug = "";
-
-  for (let page = 1; page <= 30; page += 1) {
-    const response = await listListings({
-      ...query,
-      page,
-      per_page: 100,
-    });
-
-    const rows = Array.isArray(response.data) ? response.data : [];
-    if (rows.length === 0) break;
-
-    const firstSlug = String(rows[0]?.slug ?? "");
-    if (!firstSlug || firstSlug === previousFirstSlug) break;
-
-    previousFirstSlug = firstSlug;
-
-    for (const listing of rows) {
-      if (listing?.slug) listings.set(String(listing.slug), listing);
-    }
-
-    if (rows.length < 100) break;
-  }
-
-  return [...listings.values()];
-}
-
-function toStoreProduct(listing: YpgListing): StoreProduct | null {
-  const slug = safeText(String(listing.slug ?? ""), 255);
-  const title = safeText(supplierTitle(listing), 240);
-  const stock = Number(listing.available_stock);
-  const price = Number(sellPriceKobo(listing.price_ngn));
-
-  if (
-    !slug ||
-    !title ||
-    !Number.isFinite(stock) ||
-    !Number.isFinite(price) ||
-    stock < 0 ||
-    price < 0
-  ) {
-    return null;
-  }
-
-  // Use the supplier's own title. Do not substitute an unrelated storefront title.
+function toStoreProduct(p: YpgListing, displayName?: string): StoreProduct {
   return {
-    slug,
-    title,
-    available_stock: Math.floor(stock),
-    price: Math.round(price),
+    slug: p.slug,
+    title: displayName || titleOf(p),
+    available_stock: p.available_stock,
+    price: sellPriceKobo(p.price_ngn), // kobo, includes your markup; supplier cost is never exposed
   };
 }
 
-async function buildStorefront(): Promise<BuiltStorefront> {
+async function buildStorefront(): Promise<Built> {
   const problems: string[] = [];
-  const supplierListings = await cached(
-    "youngpg-display-listings",
-    90_000,
-    () => fetchAllListings(),
-  );
+  const all = await cached("all-listings", 90_000, () => fetchPaged({}));
+  const categories: Built["categories"] = [];
 
-  const byNormalisedTitle = new Map<string, YpgListing[]>();
-
-  for (const listing of supplierListings) {
-    const title = normaliseTitle(supplierTitle(listing));
-    if (!title) continue;
-
-    const matches = byNormalisedTitle.get(title) ?? [];
-    matches.push(listing);
-    byNormalisedTitle.set(title, matches);
-  }
-
-  const categories: StoreCategory[] = [];
-
-  for (const rawCategory of STOREFRONT as unknown as Array<Record<string, any>>) {
-    // Fail closed: existing categories remain hidden until explicitly reviewed
-    // and enabled in storefront.ts.
-    if (rawCategory.enabled !== true) continue;
-
-    const key = safeText(rawCategory.key, 80);
-    const name = safeText(rawCategory.name, 100);
-
-    // Only curated, explicitly named listings are allowed. Do not expose every
-    // listing from a supplier category automatically.
-    if (!key || !name || !Array.isArray(rawCategory.items)) continue;
-
+  for (const cat of STOREFRONT) {
     const items = new Map<string, StoreProduct>();
 
-    for (const configuredItem of rawCategory.items) {
-      const wantedTitle = safeText(configuredItem?.title, 240);
-      const wanted = normaliseTitle(wantedTitle);
-
-      if (!wanted) continue;
-
-      const matches = byNormalisedTitle.get(wanted) ?? [];
-
-      if (matches.length !== 1) {
-        problems.push(
-          matches.length === 0
-            ? `${name}: supplier listing not found for "${wantedTitle}"`
-            : `${name}: supplier title is ambiguous for "${wantedTitle}"`,
-        );
-        continue;
+    if ("items" in cat) {
+      for (const wanted of cat.items) {
+        const found = findProduct(all, wanted.title);
+        if (!found) {
+          problems.push(`${cat.name}: no match for "${wanted.title.slice(0, 70)}" (closest: "${closest(all, wanted.title)}")`);
+        } else if (found === "ambiguous") {
+          problems.push(`${cat.name}: several matches for "${wanted.title.slice(0, 70)}"`);
+        } else {
+          items.set(found.slug, toStoreProduct(found, wanted.displayName));
+        }
       }
-
-      const product = toStoreProduct(matches[0]);
-      if (product) items.set(product.slug, product);
+    } else {
+      try {
+        const ref = await resolveSupplierCategory(cat.supplierCategory);
+        if (!ref) {
+          problems.push(`${cat.name}: YoungPG category "${cat.supplierCategory}" not found`);
+        } else {
+          const list = await cached(`cat:${ref.param}:${ref.id}`, 90_000, () =>
+            fetchPaged({ [ref.param]: ref.id } as ListingsQuery)
+          );
+          list
+            .filter((p) => !isExcluded(titleOf(p), cat.exclude))
+            .forEach((p) => items.set(p.slug, toStoreProduct(p)));
+        }
+      } catch (err) {
+        problems.push(`${cat.name}: failed to load (${(err as Error).message})`);
+      }
     }
 
-    if (items.size > 0) {
-      categories.push({
-        key,
-        name,
-        items: [...items.values()],
+    if (items.size > 0) categories.push({ key: cat.key, name: cat.name, items: [...items.values()] });
+  }
+
+  if (problems.length) console.warn("Storefront problems:\n" + problems.join("\n"));
+
+  const slugs = new Set(categories.flatMap((c) => c.items.map((i) => i.slug)));
+  console.warn(`Storefront: YoungPG returned ${all.length} listings`);
+  return { fetched: all.length, categories, slugs, problems };
+}
+
+function getStorefront(): Promise<Built> {
+  return cached("storefront", 90_000, buildStorefront);
+}
+
+// ---- Browse (public) ----
+
+export async function getCatalog(_req: Request, res: Response) {
+  try {
+    const built = await getStorefront();
+    res.json({ categories: built.categories });
+  } catch (err) {
+    browseError(res, err);
+  }
+}
+
+/** Admin only: shows which of your configured accounts could not be matched. */
+export async function storefrontCheck(req: AuthRequest, res: Response) {
+  const [me] = await db
+    .select({ isAdmin: users.isAdmin })
+    .from(users)
+    .where(eq(users.id, req.userId!));
+  if (!me?.isAdmin) return res.status(403).json({ error: "Forbidden" });
+
+  try {
+    const built = await getStorefront();
+    res.json({
+      fetched: built.fetched,
+      problems: built.problems,
+      categories: built.categories.map((c) => ({ name: c.name, count: c.items.length })),
+    });
+  } catch (err) {
+    browseError(res, err);
+  }
+}
+
+// ---- Purchase ----
+
+const purchaseSchema = z.object({
+  slug: z.string().min(1).max(255),
+  quantity: z.number().int().min(1).max(50),
+});
+
+export async function purchaseAccounts(req: AuthRequest, res: Response) {
+  const parsed = purchaseSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({ error: "Invalid request", details: parsed.error.flatten() });
+  }
+  const { slug, quantity } = parsed.data;
+  const userId = req.userId!;
+
+  // 1. Only accounts on the curated storefront can be bought.
+  try {
+    const store = await getStorefront();
+    if (!store.slugs.has(slug)) return res.status(404).json({ error: "Product not found" });
+  } catch (err) {
+    return browseError(res, err);
+  }
+
+  // Price is always taken from the supplier at purchase time, never from the browser.
+  let listing: YpgListing;
+  try {
+    listing = await getListing(slug);
+  } catch (err) {
+    return browseError(res, err);
+  }
+
+  if (listing.available_stock < quantity) {
+    return res.status(400).json({ error: "Not enough stock available" });
+  }
+
+  const unitPrice = sellPriceKobo(listing.price_ngn);
+  const total = unitPrice * quantity;
+  const estimatedCost = ngnToKobo(listing.price_ngn) * quantity;
+
+  // 2. Debit the buyer atomically (only if they can afford it) and record the order.
+  const created = await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(users)
+      .set({ balance: sql`${users.balance} - ${total}` })
+      .where(and(eq(users.id, userId), gte(users.balance, total)))
+      .returning({ balance: users.balance });
+
+    if (!updated) return null;
+
+    const [order] = await tx
+      .insert(supplierOrders)
+      .values({
+        buyerId: userId,
+        supplierSlug: slug,
+        title: listing.title,
+        quantity,
+        unitPrice,
+        pricePaid: total,
+        costKobo: estimatedCost,
+        status: "processing",
+      })
+      .returning();
+
+    const [txn] = await tx
+      .insert(transactions)
+      .values({
+        userId,
+        type: "purchase",
+        amount: -total,
+        status: "pending",
+        externalId: order.id,
+      })
+      .returning();
+
+    return { order, txn, newBalance: updated.balance };
+  });
+
+  if (!created) {
+    return res.status(402).json({ error: "Insufficient balance. Please fund your wallet." });
+  }
+
+  const { order, txn } = created;
+
+  // 3. Buy from the supplier. NOT retry-safe, so we never retry automatically.
+  let result: YpgPurchase;
+  try {
+    result = await purchase({ slug, quantity });
+  } catch (err) {
+    const uncertain = err instanceof YoungPgError ? err.uncertain : true;
+    console.error("YoungPG purchase failed:", err);
+
+    if (uncertain) {
+      // Outcome unknown: keep the charge in place and flag for a manual check.
+      await db
+        .update(supplierOrders)
+        .set({ status: "needs_review", failureReason: "Supplier result unknown" })
+        .where(eq(supplierOrders.id, order.id));
+      return res.status(202).json({
+        status: "processing",
+        order_id: order.id,
+        message: "Your order is being confirmed. Check your orders shortly.",
       });
     }
+
+    // Clean failure: refund the buyer and mark everything failed.
+    await db.transaction(async (tx) => {
+      await tx
+        .update(users)
+        .set({ balance: sql`${users.balance} + ${total}` })
+        .where(eq(users.id, userId));
+      await tx.update(transactions).set({ status: "failed" }).where(eq(transactions.id, txn.id));
+      await tx
+        .update(supplierOrders)
+        .set({
+          status: "failed",
+          failureReason: err instanceof YoungPgError ? `${err.status}: ${err.message}` : "Unknown error",
+        })
+        .where(eq(supplierOrders.id, order.id));
+    });
+
+    if (err instanceof YoungPgError && err.status === 429) {
+      return res.status(503).json({ error: "We're busy right now. Please try again in a moment." });
+    }
+    return res.status(502).json({ error: "This product is temporarily unavailable. You were not charged." });
   }
 
-  if (problems.length > 0) {
-    console.warn("YoungPG display catalogue matching issues:\n" + problems.join("\n"));
+  // 4. Store the delivered credentials (encrypted) and finalize.
+  try {
+    await db.transaction(async (tx) => {
+      await tx
+        .update(supplierOrders)
+        .set({
+          status: "completed",
+          supplierOrderId: String(result.order_id),
+          encryptedAccounts: encrypt(JSON.stringify(result.accounts)),
+          costKobo: ngnToKobo(result.amount_ngn),
+        })
+        .where(eq(supplierOrders.id, order.id));
+      await tx.update(transactions).set({ status: "completed" }).where(eq(transactions.id, txn.id));
+    });
+  } catch (err) {
+    // The supplier already charged us. The credentials can still be fetched from
+    // YoungPG with GET /orders/{id}, so record the supplier order id and flag it.
+    console.error("Failed to store credentials for order", order.id, "supplier order", result.order_id, err);
+    await db
+      .update(supplierOrders)
+      .set({
+        status: "needs_review",
+        supplierOrderId: String(result.order_id),
+        failureReason: "Purchased but failed to store credentials",
+      })
+      .where(eq(supplierOrders.id, order.id))
+      .catch(() => {});
+    return res.status(202).json({
+      status: "processing",
+      order_id: order.id,
+      message: "Your order is being confirmed. Check your orders shortly.",
+    });
   }
 
-  return {
-    fetched: supplierListings.length,
-    categories,
-    problems,
-  };
-}
-
-function getStorefront(): Promise<BuiltStorefront> {
-  return cached("youngpg-display-storefront", 90_000, buildStorefront);
-}
-
-function sendUnavailable(res: Response) {
-  return res.status(410).json({
-    error: "This endpoint is disabled. The catalogue is display-only.",
+  res.status(201).json({
+    status: "completed",
+    order_id: order.id,
+    accounts: result.accounts,
+    amount_paid: total,
+    new_balance: created.newBalance,
   });
 }
 
-/**
- * GET /api/catalog
- * Public, read-only catalogue response.
- */
-export async function getCatalog(_req: Request, res: Response) {
-  try {
-    const storefront = await getStorefront();
-    return res.status(200).json({
-      categories: storefront.categories,
-    });
-  } catch (error) {
-    if (error instanceof YoungPgError && error.status === 404) {
-      return res.status(404).json({ error: "Catalogue not found" });
-    }
+// ---- Orders (buyer's own) ----
 
-    console.error("YoungPG catalogue error:", error);
-    return res.status(502).json({
-      error: "The catalogue is temporarily unavailable.",
-    });
+export async function getMyOrders(req: AuthRequest, res: Response) {
+  try {
+    const rows = await db
+      .select({
+        id: supplierOrders.id,
+        title: supplierOrders.title,
+        quantity: supplierOrders.quantity,
+        unit_price: supplierOrders.unitPrice,
+        price_paid: supplierOrders.pricePaid,
+        status: supplierOrders.status,
+        created_at: supplierOrders.createdAt,
+      })
+      .from(supplierOrders)
+      .where(eq(supplierOrders.buyerId, req.userId!))
+      .orderBy(desc(supplierOrders.createdAt))
+      .limit(100);
+
+    res.json({ orders: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load orders" });
   }
 }
 
-/**
- * Compatibility exports for existing routes.
- * These handlers intentionally disable purchase, order and credential delivery.
- */
-export async function storefrontCheck(_req: AuthRequest, res: Response) {
+export async function getMyOrder(req: AuthRequest, res: Response) {
+  const id = z.string().uuid().safeParse(req.params.id);
+  if (!id.success) return res.status(404).json({ error: "Order not found" });
+
   try {
-    const storefront = await getStorefront();
-    return res.status(200).json({
-      fetched: storefront.fetched,
-      problems: storefront.problems,
-      categories: storefront.categories.map((category) => ({
-        name: category.name,
-        count: category.items.length,
-      })),
+    const [order] = await db
+      .select()
+      .from(supplierOrders)
+      .where(and(eq(supplierOrders.id, id.data), eq(supplierOrders.buyerId, req.userId!)));
+
+    if (!order) return res.status(404).json({ error: "Order not found" });
+
+    const accounts =
+      order.status === "completed" && order.encryptedAccounts
+        ? (JSON.parse(decrypt(order.encryptedAccounts)) as string[])
+        : [];
+
+    res.json({
+      id: order.id,
+      title: order.title,
+      quantity: order.quantity,
+      unit_price: order.unitPrice,
+      price_paid: order.pricePaid,
+      status: order.status,
+      created_at: order.createdAt,
+      accounts,
     });
-  } catch (error) {
-    console.error("YoungPG storefront check failed:", error);
-    return res.status(502).json({ error: "Catalogue check failed" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load order" });
   }
-}
-
-export async function purchaseAccounts(_req: AuthRequest, res: Response) {
-  return sendUnavailable(res);
-}
-
-export async function getMyOrders(_req: AuthRequest, res: Response) {
-  return sendUnavailable(res);
-}
-
-export async function getMyOrder(_req: AuthRequest, res: Response) {
-  return sendUnavailable(res);
 }
