@@ -52,7 +52,6 @@ export default function Dashboard() {
     balance: number;
   } | null>(null);
   const [categories, setCategories] = useState<StoreCategory[]>([]);
-  const [selected, setSelected] = useState("all");
   const [search, setSearch] = useState("");
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState(false);
@@ -112,25 +111,21 @@ export default function Dashboard() {
 
   const visibleCategories = useMemo(() => {
     return categories
-      .filter((category) => selected === "all" || category.key === selected)
       .map((category) => {
         const matchingItems = category.items.filter(
           (item) => !query || item.title.toLowerCase().includes(query)
         );
 
-        // Category previews show five products. Search and an opened category
-        // show every matching product so results are not hidden.
-        const showAll = Boolean(query) || selected !== "all";
+        // Dashboard previews the first five products per category. While
+        // searching, every match is shown so results are not hidden.
         return {
           ...category,
-          items: showAll
-            ? matchingItems
-            : matchingItems.slice(0, PREVIEW_LIMIT),
+          items: query ? matchingItems : matchingItems.slice(0, PREVIEW_LIMIT),
           matchingCount: matchingItems.length,
         };
       })
       .filter((category) => category.items.length > 0);
-  }, [categories, query, selected]);
+  }, [categories, query]);
 
   if (!user) {
     return (
@@ -232,23 +227,18 @@ export default function Dashboard() {
               <h1>Digital Products</h1>
               <p>Browse the products and services currently available.</p>
             </div>
-            {selected !== "all" && (
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => setSelected("all")}
-              >
-                ← All categories
-              </button>
-            )}
           </div>
 
           <div className="filter-row">
             <div className="select-shell">
               <select
                 aria-label="Filter by category"
-                value={selected}
-                onChange={(event) => setSelected(event.target.value)}
+                value="all"
+                onChange={(event) => {
+                  if (event.target.value !== "all") {
+                    router.push(`/category/${event.target.value}`);
+                  }
+                }}
               >
                 <option value="all">All categories</option>
                 {categories.map((category) => (
@@ -283,7 +273,7 @@ export default function Dashboard() {
           <p style={{ color: "var(--text-muted)" }}>
             {categories.length === 0
               ? "No approved products are currently available."
-              : "No products match your search or category."}
+              : "No products match your search."}
           </p>
         )}
 
@@ -296,17 +286,13 @@ export default function Dashboard() {
                   <span className="cat-badge">{badge(category.name)}</span>
                   {category.name}
                 </div>
-                {!query && selected === "all" && category.matchingCount > PREVIEW_LIMIT && (
-                  <button
-                    type="button"
+                {!query && category.matchingCount > PREVIEW_LIMIT && (
+                  <Link
+                    href={`/category/${category.key}`}
                     className="btn btn-ghost"
-                    onClick={() => {
-                      setSelected(category.key);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
                   >
                     View all ({category.matchingCount})
-                  </button>
+                  </Link>
                 )}
               </div>
 
