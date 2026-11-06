@@ -320,7 +320,7 @@ export default function WalletPage() {
           Add funds
         </Link>
 
-        <div className="drawer-item">
+        <Link href="/settings" className="drawer-item" onClick={closeDrawer}>
           <span className="d-icon">
             <svg
               viewBox="0 0 24 24"
@@ -335,7 +335,7 @@ export default function WalletPage() {
             </svg>
           </span>
           Settings
-        </div>
+        </Link>
 
         <div className="drawer-item">
           <span className="d-icon">

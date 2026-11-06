@@ -12,7 +12,7 @@ export default function SettingsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const [loaded, setLoaded] = useState(false);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [email, setEmail] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -32,7 +32,10 @@ export default function SettingsPage() {
     async function load() {
       try {
         const res = await fetch(`${API}/api/account`, { headers: { Authorization: `Bearer ${token}` } });
-        if (!res.ok) throw new Error("load failed");
+        if (!res.ok) {
+          setLoadError(`error ${res.status}`);
+          return;
+        }
         const d = await res.json();
         setEmail(d.email || "");
         setFirstName(d.firstName || "");
@@ -40,7 +43,7 @@ export default function SettingsPage() {
         setPhone(d.phone || "");
         setSaved({ firstName: d.firstName || "", lastName: d.lastName || "", phone: d.phone || "" });
       } catch {
-        setLoadError(true);
+        setLoadError("network error");
       } finally {
         setLoaded(true);
       }
@@ -141,8 +144,8 @@ export default function SettingsPage() {
         <h1 style={{ fontSize: 26, margin: "0 0 18px" }}>Settings</h1>
 
         {!loaded && <p style={{ color: "var(--text-muted)" }}>Loading your details...</p>}
-        {loaded && loadError && (
-          <p style={{ color: "var(--text-muted)" }}>Couldn't load your details right now. Please refresh in a moment.</p>
+        {loaded && !!loadError && (
+          <p style={{ color: "var(--text-muted)" }}>Couldn't load your details right now ({loadError}). Please refresh in a moment.</p>
         )}
 
         {loaded && !loadError && (
