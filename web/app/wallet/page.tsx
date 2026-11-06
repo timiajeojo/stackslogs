@@ -21,6 +21,7 @@ const STATUS_COLOR: Record<string, string> = {
   completed: "#22c55e",
   pending: "#f59e0b",
   failed: "#f87171",
+  abandoned: "#94a3b8",
 };
 
 const typeLabel = (t: string) =>
@@ -489,30 +490,41 @@ export default function WalletPage() {
                 </div>
               ))}
 
-              {totalPages > 1 && (
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "14px 16px",
-                    borderTop: "1px solid var(--border, rgba(128,128,128,0.2))",
-                  }}
-                >
-                  <button className="btn btn-ghost" disabled={page <= 1 || loadingPage} onClick={() => loadWallet(page - 1)}>
-                    ← Previous
-                  </button>
-                  <span style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center" }}>
-                    Page {page} of {totalPages}
-                    <br />
-                    {totalCount} transactions
-                  </span>
-                  <button className="btn btn-blue" disabled={page >= totalPages || loadingPage} onClick={() => loadWallet(page + 1)}>
-                    Next →
-                  </button>
-                </div>
-              )}
+            </div>
+          )}
+
+          {loaded && !loadError && txns.length > 0 && totalPages > 1 && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr auto 1fr",
+                alignItems: "center",
+                gap: 10,
+                padding: "16px",
+                borderTop: "1px solid var(--border-strong, rgba(128,128,128,0.3))",
+              }}
+            >
+              <button
+                className="btn btn-ghost"
+                style={{ width: "100%" }}
+                disabled={page <= 1 || loadingPage}
+                onClick={() => loadWallet(page - 1)}
+              >
+                ← Previous
+              </button>
+              <span style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center" }}>
+                Page {page} of {totalPages}
+                <br />
+                {totalCount} transactions
+              </span>
+              <button
+                className="btn btn-blue"
+                style={{ width: "100%" }}
+                disabled={page >= totalPages || loadingPage}
+                onClick={() => loadWallet(page + 1)}
+              >
+                Next →
+              </button>
             </div>
           )}
         </div>

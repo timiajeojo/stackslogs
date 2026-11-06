@@ -4,6 +4,10 @@ import { db } from "../db";
 import { users, transactions } from "../db/schema";
 import { AuthRequest } from "../middleware/auth.middleware";
 
+// A deposit that is still "pending" after this long is shown as "abandoned" (the user left checkout).
+// If the payment is confirmed later, the status simply becomes "completed".
+const ABANDON_AFTER_MINUTES = 30;
+
 /**
  * GET /api/wallet?page=1&limit=10
  * Returns the user's balance, lifetime totals (deposits and purchases) and one page of transactions.
@@ -42,13 +46,20 @@ export async function getWallet(req: AuthRequest, res: Response) {
       .limit(limit)
       .offset((page - 1) * limit);
 
+    const cutoff = Date.now() - ABANDON_AFTER_MINUTES * 60_000;
+    const shown = rows.map((r) =>
+      r.type === "deposit" && r.status === "pending" && new Date(r.createdAt).getTime() < cutoff
+        ? { ...r, status: "abandoned" }
+        : r
+    );
+
     const total = Number(agg?.total ?? 0);
 
     res.json({
       balance: Number(user.balance),
       totalDeposits: Number(agg?.deposits ?? 0),
       totalSpent: Number(agg?.spent ?? 0),
-      transactions: rows,
+      transactions: shown,
       page,
       limit,
       total,
