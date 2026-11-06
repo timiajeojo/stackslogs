@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { API, naira, useUser } from "../lib/store";
 
@@ -19,6 +19,23 @@ type Tab = "all" | "completed" | "processing" | "refunds";
 // Tries each URL until one exists (the route prefix depends on how the backend mounts it).
 const ORDER_URLS = ["/api/catalog/orders", "/api/orders"];
 
+const PAGE_SIZE = 10;
+
+// Square chevron button used for page navigation.
+const pageBtnStyle = (primary: boolean, disabled: boolean): CSSProperties => ({
+  width: 44,
+  height: 44,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: 12,
+  cursor: disabled ? "not-allowed" : "pointer",
+  opacity: disabled ? 0.35 : 1,
+  color: primary ? "#fff" : "var(--text, #fff)",
+  background: primary ? "var(--blue, #3D8FFF)" : "var(--surface-2, rgba(128,128,128,0.15))",
+  border: primary ? "none" : "1px solid var(--border-strong, rgba(128,128,128,0.4))",
+});
+
 const group = (o: Order): Exclude<Tab, "all"> =>
   o.status === "completed" ? "completed" : o.status === "failed" ? "refunds" : "processing";
 
@@ -32,6 +49,7 @@ export default function OrdersPage() {
   const { user, logout } = useUser();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("all");
+  const [page, setPage] = useState(1);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -102,6 +120,9 @@ export default function OrdersPage() {
   // Refunded orders were never kept, so they don't count as spent.
   const totalSpent = orders.filter((o) => o.status !== "failed").reduce((sum, o) => sum + o.price_paid, 0);
   const shown = orders.filter((o) => activeTab === "all" || group(o) === activeTab);
+  const totalPages = Math.max(Math.ceil(shown.length / PAGE_SIZE), 1);
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = shown.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   return (
     <>
@@ -163,7 +184,11 @@ export default function OrdersPage() {
             <button
               key={tab.id}
               className={`status-tab ${activeTab === tab.id ? "active" : ""}`}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setPage(1);
+                setOpenId(null);
+              }}
             >
               {tab.label} <span className="mono">· {count(tab.id)}</span>
             </button>
@@ -208,7 +233,7 @@ export default function OrdersPage() {
 
           {!loading &&
             !error &&
-            shown.map((o, i) => {
+            pageItems.map((o, i) => {
               const g = group(o);
               const st = STATUS_LABEL[g];
               const detail = details[o.id];
@@ -284,6 +309,55 @@ export default function OrdersPage() {
                 </div>
               );
             })}
+
+          {!loading && !error && totalPages > 1 && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 16,
+                padding: "16px",
+                borderTop: "1px solid var(--border-strong, rgba(128,128,128,0.3))",
+              }}
+            >
+              <button
+                type="button"
+                aria-label="Previous page"
+                disabled={currentPage <= 1}
+                onClick={() => {
+                  setPage(currentPage - 1);
+                  setOpenId(null);
+                }}
+                style={pageBtnStyle(false, currentPage <= 1)}
+              >
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 5l-7 7 7 7" />
+                </svg>
+              </button>
+
+              <span style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center", minWidth: 110 }}>
+                Page {currentPage} of {totalPages}
+                <br />
+                {shown.length} orders
+              </span>
+
+              <button
+                type="button"
+                aria-label="Next page"
+                disabled={currentPage >= totalPages}
+                onClick={() => {
+                  setPage(currentPage + 1);
+                  setOpenId(null);
+                }}
+                style={pageBtnStyle(true, currentPage >= totalPages)}
+              >
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
         </div>
       </main>
 
