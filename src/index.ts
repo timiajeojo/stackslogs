@@ -182,14 +182,38 @@ app.put("/api/account/password", requireAuth, async (req: AuthRequest, res) => {
 
 app.delete("/api/account", requireAuth, async (req: AuthRequest, res) => {
   try {
-    // Permanently delete the user and their transactions in one database transaction.
-    // NOTE: if other tables reference users.id (orders, etc.), delete those rows here first.
-    const deleted = await db.transaction(async (tx) => {
-      await tx.delete(transactions).where(eq(transactions.userId, req.userId!));
-      return tx.delete(users).where(eq(users.id, req.userId!)).returning({ id: users.id });
-    });
+    const [user] = await db.select().from(users).where(eq(users.id, req.userId!));
+    if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (deleted.length === 0) return res.status(404).json({ error: "User not found" });
+    // Block deletion while there is still money in the account (balance is in kobo).
+    if (Number(user.balance) > 0) {
+      return res.status(400).json({
+        error: "You still have funds in your account. Use up your balance before deleting your account.",
+      });
+    }
+
+    try {
+      // Sequential deletes: db.transaction() isn't supported by every driver (e.g. neon-http),
+      // which is a likely reason deletion was failing before.
+      await db.delete(transactions).where(eq(transactions.userId, req.userId!));
+      await db.delete(users).where(eq(users.id, req.userId!));
+    } catch (delErr: any) {
+      const code = delErr?.code ?? delErr?.cause?.code;
+      console.error("Hard delete failed:", code, delErr?.message ?? delErr);
+      if (code !== "23503") throw delErr; // 23503 = foreign key violation (e.g. orders table)
+      // Other tables still reference this user: anonymise so the account is closed and can't log in.
+      await db
+        .update(users)
+        .set({
+          email: `deleted+${req.userId}@deleted.invalid`,
+          firstName: "",
+          lastName: "",
+          phone: "",
+          balance: 0,
+        } as any)
+        .where(eq(users.id, req.userId!));
+    }
+
     res.json({ ok: true });
   } catch (err) {
     console.error("DELETE /api/account failed:", err);
