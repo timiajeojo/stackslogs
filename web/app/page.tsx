@@ -1,125 +1,292 @@
-import Link from "next/link";
+"use client";
 
-export default function Home() {
-  const platforms = [
-    { code: "IG", name: "Instagram", count: "3,120 available" },
-    { code: "TT", name: "TikTok", count: "1,840 available" },
-    { code: "X", name: "X", count: "1,910 available" },
-    { code: "FB", name: "Facebook", count: "2,205 available" },
-    { code: "TG", name: "Telegram", count: "930 available" },
-    { code: "TH", name: "Threads", count: "440 available" },
-  ];
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { API, naira, useUser } from "../lib/store";
+
+const labelStyle = { display: "block", fontSize: 13, color: "var(--text-muted)", margin: "0 0 6px" } as const;
+const fieldStyle = { width: "100%", margin: "0 0 16px" } as const;
+
+export default function SettingsPage() {
+  const { user, setUser, logout } = useUser();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [saved, setSaved] = useState({ firstName: "", lastName: "", phone: "" });
+
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return; // useUser sends them to /login
+    async function load() {
+      try {
+        const res = await fetch(`${API}/api/account`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) {
+          setLoadError(`error ${res.status}`);
+          return;
+        }
+        const d = await res.json();
+        setEmail(d.email || "");
+        setFirstName(d.firstName || "");
+        setLastName(d.lastName || "");
+        setPhone(d.phone || "");
+        setSaved({ firstName: d.firstName || "", lastName: d.lastName || "", phone: d.phone || "" });
+      } catch {
+        setLoadError("network error");
+      } finally {
+        setLoaded(true);
+      }
+    }
+    load();
+  }, []);
+
+  const dirty =
+    firstName.trim() !== saved.firstName || lastName.trim() !== saved.lastName || phone.trim() !== saved.phone;
+
+  async function save() {
+    if (saving || !dirty) return;
+    setSaving(true);
+    setMsg(null);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/api/account`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ firstName, lastName, phone }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg({ type: "error", text: d.error || "Couldn't save your changes. Please try again." });
+        return;
+      }
+      setFirstName(d.firstName || "");
+      setLastName(d.lastName || "");
+      setPhone(d.phone || "");
+      setSaved({ firstName: d.firstName || "", lastName: d.lastName || "", phone: d.phone || "" });
+      setUser((u) => (u ? { ...u, firstName: d.firstName || "" } : u));
+      setMsg({ type: "ok", text: "Your changes have been saved." });
+    } catch {
+      setMsg({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteAccount() {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/api/account`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setDeleteError(d.error || "Couldn't delete your account. Please try again.");
+        setDeleting(false);
+        return;
+      }
+      logout(); // clears the token and sends them to /login
+    } catch {
+      setDeleteError("Network error. Please try again.");
+      setDeleting(false);
+    }
+  }
 
   return (
     <>
-      <nav>
-        <div className="logo"><span className="mark">S</span>StacksLogs</div>
-        <div className="navlinks">
-          <a href="#accounts">Accounts</a>
-          <a href="#how">How it works</a>
-          <a href="#why">Why us</a>
+      <nav className="dash">
+        <div className="nav-left">
+          <button className="burger" onClick={() => setDrawerOpen(true)} aria-label="Open navigation">
+            <span /><span /><span />
+          </button>
         </div>
-        <Link href="/register" className="btn btn-blue">Get Started</Link>
+        <Link href="/dashboard" className="logo">
+          <span className="mark">S</span>StacksLogs
+        </Link>
+        <div className="nav-right">
+          <div className="avatar">{(email || user?.email || "")[0]?.toUpperCase() || ""}</div>
+        </div>
       </nav>
 
-      <header className="hero">
-        <h1>Buy verified social<br />media accounts <span className="accent">instantly</span></h1>
-        <p>Skip building from zero. Get ready-to-use Instagram, TikTok, X, and Facebook accounts — checked, verified, and delivered fast.</p>
-        <Link href="/register" className="btn btn-blue">Get Started</Link>
-        <div className="hero-note"><span className="check">✓</span> Secure checkout · Verified accounts · Fast delivery</div>
-      </header>
-
-      <div className="stats">
-        <div className="stats-grid">
-          <div><div className="stat-num">12,800+</div><div className="stat-label">Accounts delivered</div></div>
-          <div><div className="stat-num">9,400+</div><div className="stat-label">Customers served</div></div>
-          <div><div className="stat-num">&lt;10min</div><div className="stat-label">Avg. delivery time</div></div>
-          <div><div className="stat-num">4.8/5</div><div className="stat-label">Customer rating</div></div>
+      <div className={`drawer-overlay ${drawerOpen ? "open" : ""}`} onClick={() => setDrawerOpen(false)} />
+      <aside className={`drawer ${drawerOpen ? "open" : ""}`}>
+        <div className="drawer-head">
+          <Link href="/dashboard" className="logo" onClick={() => setDrawerOpen(false)}>
+            <span className="mark">S</span>StacksLogs
+          </Link>
+          <button className="drawer-close" onClick={() => setDrawerOpen(false)} aria-label="Close navigation">✕</button>
         </div>
-      </div>
-
-      <section id="accounts" className="section-pad">
-        <div className="section-head">
-          <span className="section-eyebrow">Accounts</span>
-          <h2>Every platform, ready to go</h2>
-          <p>Browse by platform and pick the account that fits — filter by followers, age, and niche.</p>
+        <div className="drawer-section-label">Home</div>
+        <Link href="/dashboard" className="drawer-item" onClick={() => setDrawerOpen(false)}>Dashboard</Link>
+        <div className="drawer-section-label">Account</div>
+        <Link href="/orders" className="drawer-item" onClick={() => setDrawerOpen(false)}>My orders</Link>
+        <Link href="/wallet" className="drawer-item" onClick={() => setDrawerOpen(false)}>Add funds</Link>
+        <Link href="/settings" className="drawer-item active" onClick={() => setDrawerOpen(false)}>Settings</Link>
+        <div className="drawer-item">Customer care</div>
+        <div className="drawer-spacer" />
+        <div className="drawer-logout">
+          <button className="drawer-item logout" onClick={logout}>Logout</button>
         </div>
-        <div className="plat-grid">
-          {platforms.map((p) => (
-            <div className="plat-card" key={p.code}>
-              <div className="plat-badge">{p.code}</div>
-              <div className="name">{p.name}</div>
-              <div className="count">{p.count}</div>
+      </aside>
+
+      <main className="dash-main">
+        <h1 style={{ fontSize: 26, margin: "0 0 18px" }}>Settings</h1>
+
+        {!loaded && <p style={{ color: "var(--text-muted)" }}>Loading your details...</p>}
+        {loaded && !!loadError && (
+          <p style={{ color: "var(--text-muted)" }}>Couldn't load your details right now ({loadError}). Please refresh in a moment.</p>
+        )}
+
+        {loaded && !loadError && (
+          <>
+            <section
+              style={{
+                background: "var(--surface, #0f1626)",
+                border: "1px solid var(--border, rgba(128,128,128,0.25))",
+                borderRadius: 16,
+                padding: 18,
+                marginBottom: 20,
+              }}
+            >
+              <h2 style={{ fontSize: 17, margin: "0 0 16px" }}>Profile</h2>
+
+              <label style={labelStyle} htmlFor="firstName">First name</label>
+              <input
+                id="firstName"
+                className="search-input"
+                style={fieldStyle}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                maxLength={100}
+                autoComplete="given-name"
+              />
+
+              <label style={labelStyle} htmlFor="lastName">Last name</label>
+              <input
+                id="lastName"
+                className="search-input"
+                style={fieldStyle}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                maxLength={100}
+                autoComplete="family-name"
+              />
+
+              <label style={labelStyle} htmlFor="email">Email</label>
+              <input
+                id="email"
+                className="search-input"
+                style={{ ...fieldStyle, margin: "0 0 4px", opacity: 0.6, cursor: "not-allowed" }}
+                value={email}
+                readOnly
+                disabled
+              />
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 16px" }}>Your email can't be changed.</p>
+
+              <label style={labelStyle} htmlFor="phone">Phone number</label>
+              <input
+                id="phone"
+                className="search-input"
+                style={fieldStyle}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="e.g. 08012345678"
+                inputMode="tel"
+                maxLength={30}
+                autoComplete="tel"
+              />
+
+              {msg && (
+                <p style={{ fontSize: 13, margin: "0 0 12px", color: msg.type === "ok" ? "#22c55e" : "#f87171" }}>{msg.text}</p>
+              )}
+
+              <button className="btn btn-blue" onClick={save} disabled={saving || !dirty}>
+                {saving ? "Saving..." : "Save changes"}
+              </button>
+            </section>
+
+            <section
+              style={{
+                background: "var(--surface, #0f1626)",
+                border: "1px solid rgba(248,113,113,0.4)",
+                borderRadius: 16,
+                padding: 18,
+                marginBottom: 20,
+              }}
+            >
+              <h2 style={{ fontSize: 17, margin: "0 0 8px", color: "#f87171" }}>Delete account</h2>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
+                This permanently closes your account and removes your personal details. You won't be able to log in again.
+              </p>
+              <button
+                className="btn"
+                style={{ background: "#dc2626", color: "#fff", border: "none" }}
+                onClick={() => {
+                  setDeleteError("");
+                  setConfirmOpen(true);
+                }}
+              >
+                Delete account
+              </button>
+            </section>
+          </>
+        )}
+      </main>
+
+      {confirmOpen && (
+        <div
+          onClick={() => !deleting && setConfirmOpen(false)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 100,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 400, background: "var(--surface, #0f1626)", color: "var(--text, #fff)",
+              border: "1px solid var(--border-strong, rgba(128,128,128,0.4))", borderRadius: 16, padding: 20,
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>Delete your account?</div>
+            <p style={{ fontSize: 14, lineHeight: 1.5, margin: "0 0 10px" }}>
+              This can't be undone. You'll be logged out and won't be able to sign in with this account again.
+            </p>
+            {(user?.balance || 0) > 0 && (
+              <p style={{ fontSize: 14, lineHeight: 1.5, margin: "0 0 10px", color: "#f59e0b" }}>
+                Your remaining balance of ₦{naira(user?.balance || 0)} will be lost.
+              </p>
+            )}
+            {deleteError && <p style={{ fontSize: 13, color: "#f87171", margin: "0 0 10px" }}>{deleteError}</p>}
+            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+              <button className="btn btn-ghost" onClick={() => setConfirmOpen(false)} disabled={deleting}>Cancel</button>
+              <button
+                className="btn"
+                style={{ background: "#dc2626", color: "#fff", border: "none" }}
+                onClick={deleteAccount}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting..." : "Yes, delete my account"}
+              </button>
             </div>
-          ))}
+          </div>
         </div>
-      </section>
+      )}
 
-      <section id="how" className="section-pad">
-        <div className="section-head">
-          <span className="section-eyebrow">Process</span>
-          <h2>Buying an account takes minutes</h2>
-          <p>No back-and-forth, no waiting around.</p>
-        </div>
-        <div className="steps">
-          <div className="step">
-            <span className="step-num">01</span>
-            <h3>Pick an account</h3>
-            <p>Filter by platform, follower count, niche, and price to find the right fit.</p>
-          </div>
-          <div className="step">
-            <span className="step-num">02</span>
-            <h3>Checkout securely</h3>
-            <p>Pay with your preferred method through our encrypted checkout.</p>
-          </div>
-          <div className="step">
-            <span className="step-num">03</span>
-            <h3>Get instant access</h3>
-            <p>Login details are delivered straight to your dashboard, ready to use.</p>
-          </div>
-        </div>
-      </section>
-
-      <section id="why" className="section-pad">
-        <div className="section-head">
-          <span className="section-eyebrow">Why StacksLogs</span>
-          <h2>Built for buyers who need it to just work</h2>
-          <p>Every account is checked before it&apos;s listed, and support is there if anything&apos;s off.</p>
-        </div>
-        <div className="feat-grid">
-          <div className="feat-card">
-            <div className="feat-icon">✓</div>
-            <h3>Verified accounts</h3>
-            <p>Every account is checked for authenticity and activity before it&apos;s listed.</p>
-          </div>
-          <div className="feat-card">
-            <div className="feat-icon">⚡</div>
-            <h3>Instant delivery</h3>
-            <p>Login details land in your dashboard the moment payment clears.</p>
-          </div>
-          <div className="feat-card">
-            <div className="feat-icon">🔒</div>
-            <h3>Secure payment</h3>
-            <p>Encrypted checkout with multiple payment options.</p>
-          </div>
-          <div className="feat-card">
-            <div className="feat-icon">◐</div>
-            <h3>24/7 support</h3>
-            <p>Real support if an account doesn&apos;t match its listing.</p>
-          </div>
-        </div>
-      </section>
-
-      <div className="cta-band">
-        <h2>Ready to get started?</h2>
-        <p>Browse available accounts and find the right one in minutes.</p>
-        <Link href="/register" className="btn btn-blue">Get Started</Link>
-      </div>
-
-      <footer>
-        <div className="foot-inner">
+      <footer className="site-footer">
+        <div className="foot-inner" style={{ justifyContent: "center", textAlign: "center" }}>
           <span>© 2026 StacksLogs</span>
-          <span>support@stackslogs.com</span>
         </div>
       </footer>
     </>

@@ -12,6 +12,8 @@ import { users, transactions } from "./db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { createCheckoutSession, verifyBachsSignature } from "./services/bachs.service";
 import walletRoutes from "./routes/wallet.routes";
+// ASSUMPTION: passwords are hashed with bcrypt. If auth.routes.ts uses "bcrypt" or argon2, match it here.
+import bcrypt from "bcryptjs";
 
 const app = express();
 app.set("trust proxy", 1);
@@ -144,23 +146,50 @@ app.patch("/api/account", requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
+app.put("/api/account/password", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+    const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: "Fill in all password fields." });
+    }
+    if (newPassword.length < 8 || newPassword.length > 128) {
+      return res.status(400).json({ error: "New password must be 8 to 128 characters." });
+    }
+    if (newPassword === currentPassword) {
+      return res.status(400).json({ error: "New password must be different from the current one." });
+    }
+
+    const [user] = await db.select().from(users).where(eq(users.id, req.userId!));
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // ASSUMPTION: the hash column is `passwordHash`. Rename if your schema differs.
+    const ok = await bcrypt.compare(currentPassword, (user as any).passwordHash);
+    if (!ok) {
+      // 400 (not 401) so the frontend doesn't treat it as an expired session.
+      return res.status(400).json({ error: "Current password is incorrect." });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await db.update(users).set({ passwordHash } as any).where(eq(users.id, req.userId!));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("PUT /api/account/password failed:", err);
+    res.status(500).json({ error: "Couldn't change your password." });
+  }
+});
+
 app.delete("/api/account", requireAuth, async (req: AuthRequest, res) => {
   try {
-    // Anonymise instead of hard-deleting so transaction history (foreign keys) stays intact.
-    // The email is replaced, so the old address can no longer log in.
-    const [updated] = await db
-      .update(users)
-      .set({
-        email: `deleted+${req.userId}@deleted.invalid`,
-        firstName: "",
-        lastName: "",
-        phone: "",
-        balance: 0,
-      } as any)
-      .where(eq(users.id, req.userId!))
-      .returning();
+    // Permanently delete the user and their transactions in one database transaction.
+    // NOTE: if other tables reference users.id (orders, etc.), delete those rows here first.
+    const deleted = await db.transaction(async (tx) => {
+      await tx.delete(transactions).where(eq(transactions.userId, req.userId!));
+      return tx.delete(users).where(eq(users.id, req.userId!)).returning({ id: users.id });
+    });
 
-    if (!updated) return res.status(404).json({ error: "User not found" });
+    if (deleted.length === 0) return res.status(404).json({ error: "User not found" });
     res.json({ ok: true });
   } catch (err) {
     console.error("DELETE /api/account failed:", err);
