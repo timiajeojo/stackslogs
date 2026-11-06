@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { API, naira, Product, useCatalog } from "../lib/store";
 import BuyModal from "../components/BuyModal";
+import CategoryBox from "../components/CategoryBox";
 
 const PREVIEW_COUNT = 5;
 
@@ -133,32 +134,7 @@ export default function Dashboard() {
 
         {!catalogLoading &&
           visible.map((cat) => (
-            <section className="cat-section" key={cat.key}>
-              <div className="cat-head">
-                <div className="cat-title">{cat.name}</div>
-                <Link href={`/category/${cat.key}`} className="view-all">View all →</Link>
-              </div>
-              <div className="card-row">
-                {cat.items.map((item) => (
-                  <div className="acc-card" key={item.slug}>
-                    <div className="acc-top">
-                      <span className={`stock-pill ${item.available_stock > 0 ? "in" : "out"}`}>
-                        {item.available_stock > 0 ? `${item.available_stock} in stock` : "Sold out"}
-                      </span>
-                    </div>
-                    <div className="acc-name">{item.title}</div>
-                    <div className="acc-bottom">
-                      <div className="price-block">
-                        <span className="price-now">₦{naira(item.price)}</span>
-                      </div>
-                      <button className="cart-btn" disabled={item.available_stock === 0} onClick={() => setBuyItem(item)}>
-                        🛒
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+            <CategoryBox key={cat.key} name={cat.name} href={`/category/${cat.key}`} items={cat.items} onBuy={setBuyItem} />
           ))}
       </main>
 

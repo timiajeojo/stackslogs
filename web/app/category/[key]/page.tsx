@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { API, naira, Product, useCatalog } from "../../lib/store";
 import BuyModal from "../../components/BuyModal";
+import CategoryBox from "../../components/CategoryBox";
 
 export default function CategoryPage() {
   const router = useRouter();
@@ -98,41 +99,17 @@ export default function CategoryPage() {
         )}
 
         {!loading && cat && (
-          <section className="cat-section">
-            <div className="cat-head">
-              <div className="cat-title">{cat.name} ({cat.items.length})</div>
-            </div>
-            <div className="filter-row">
-              <input
-                className="search-input"
-                style={{ width: "100%" }}
-                placeholder={`Search ${cat.name}...`}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
+          <>
+            <input
+              className="search-input"
+              style={{ width: "100%", margin: "0 0 14px" }}
+              placeholder={`Search ${cat.name}...`}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
             {items.length === 0 && <p style={{ color: "var(--text-muted)" }}>No accounts match your search.</p>}
-            <div className="card-row" style={{ flexWrap: "wrap" }}>
-              {items.map((item) => (
-                <div className="acc-card" key={item.slug}>
-                  <div className="acc-top">
-                    <span className={`stock-pill ${item.available_stock > 0 ? "in" : "out"}`}>
-                      {item.available_stock > 0 ? `${item.available_stock} in stock` : "Sold out"}
-                    </span>
-                  </div>
-                  <div className="acc-name">{item.title}</div>
-                  <div className="acc-bottom">
-                    <div className="price-block">
-                      <span className="price-now">₦{naira(item.price)}</span>
-                    </div>
-                    <button className="cart-btn" disabled={item.available_stock === 0} onClick={() => setBuyItem(item)}>
-                      🛒
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+            {items.length > 0 && <CategoryBox name={`${cat.name} (${cat.items.length})`} items={items} onBuy={setBuyItem} />}
+          </>
         )}
       </main>
 
