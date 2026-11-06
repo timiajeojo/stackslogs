@@ -15,6 +15,7 @@ exports.users = (0, pg_core_1.pgTable)("users", {
     passwordHash: (0, pg_core_1.text)("password_hash").notNull(),
     firstName: (0, pg_core_1.varchar)("first_name", { length: 100 }),
     lastName: (0, pg_core_1.varchar)("last_name", { length: 100 }),
+    phone: (0, pg_core_1.varchar)("phone", { length: 30 }),
     balance: (0, pg_core_1.integer)("balance").notNull().default(0),
     isAdmin: (0, pg_core_1.boolean)("is_admin").notNull().default(false),
     createdAt: (0, pg_core_1.timestamp)("created_at").notNull().defaultNow(),
