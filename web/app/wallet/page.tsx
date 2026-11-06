@@ -1,42 +1,90 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-type Tx = {
+const API = process.env.NEXT_PUBLIC_API_URL || "";
+
+interface Txn {
   id: string;
-  type: "deposit" | "purchase";
-  status: "success" | "failed" | "pending";
-  amount: number;
-  description?: string;
-  created_at: string;
-};
+  type: string;
+  amount: number; // kobo, negative for money going out
+  status: string;
+  createdAt: string;
+}
 
 const naira = (kobo: number) =>
-  (kobo / 100).toLocaleString("en-NG", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  (kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const STATUS_COLOR: Record<string, string> = {
+  completed: "#22c55e",
+  pending: "#f59e0b",
+  failed: "#f87171",
+};
+
+const typeLabel = (t: string) =>
+  t === "deposit" ? "Deposit" : t === "purchase" ? "Purchase" : t.charAt(0).toUpperCase() + t.slice(1);
 
 export default function WalletPage() {
   const router = useRouter();
 
-    const [drawerOpen, setDrawerOpen] = useState(false);
-    const [avatar, setAvatar] = useState("U");
-    const [balance, setBalance] = useState(0);
-    const [funding, setFunding] = useState(false);
-    const [depositModalOpen, setDepositModalOpen] = useState(false);
-    const [depositAmount, setDepositAmount] = useState("");
-    const [totalDeposit, setTotalDeposit] = useState(0);
-    const [totalSpent, setTotalSpent] = useState(0);
-    const [transactions, setTransactions] = useState<Tx[]>([]);
-    const [txLoading, setTxLoading] = useState(true);
-    const [txError, setTxError] = useState(false);
-  
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [avatar, setAvatar] = useState("U");
+  const [balance, setBalance] = useState(0);
+  const [totalDeposits, setTotalDeposits] = useState(0);
+  const [totalSpent, setTotalSpent] = useState(0);
+  const [txns, setTxns] = useState<Txn[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [loadingPage, setLoadingPage] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+
+  const [funding, setFunding] = useState(false);
+  const [depositModalOpen, setDepositModalOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState("");
+
+  const loadWallet = useCallback(
+    async (pageNum: number) => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+      setLoadingPage(true);
+      try {
+        const res = await fetch(`${API}/api/wallet?page=${pageNum}&limit=10`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem("token");
+          router.push("/login");
+          return;
+        }
+        if (!res.ok) throw new Error("wallet failed");
+        const data = await res.json();
+        setBalance(data.balance || 0);
+        setTotalDeposits(data.totalDeposits || 0);
+        setTotalSpent(data.totalSpent || 0);
+        setTxns(Array.isArray(data.transactions) ? data.transactions : []);
+        setPage(data.page || pageNum);
+        setTotalPages(data.totalPages || 1);
+        setTotalCount(data.total || 0);
+        setLoadError(false);
+      } catch {
+        setLoadError(true);
+      } finally {
+        setLoaded(true);
+        setLoadingPage(false);
+      }
+    },
+    [router]
+  );
+
   useEffect(() => {
     const token = localStorage.getItem("token");
-
     if (!token) {
       router.push("/login");
       return;
@@ -44,67 +92,31 @@ export default function WalletPage() {
 
     async function loadUser() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-
-        const response = await fetch(`${apiUrl}/api/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
+        const response = await fetch(`${API}/api/me`, { headers: { Authorization: `Bearer ${token}` } });
         if (!response.ok) {
           localStorage.removeItem("token");
           router.push("/login");
           return;
         }
-
-                const user = await response.json();
-
+        const user = await response.json();
         setAvatar(user?.email?.[0]?.toUpperCase() || "U");
-        setBalance(user?.balance || 0);
       } catch {
         setAvatar("U");
       }
     }
-
-    async function loadWallet() {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-
-        const res = await fetch(`${apiUrl}/api/wallet`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) throw new Error("Failed to load wallet");
-
-        const data = await res.json();
-
-        setBalance(data.balance ?? 0);
-        setTotalDeposit(data.total_deposit ?? 0);
-        setTotalSpent(data.total_spent ?? 0);
-        setTransactions(data.transactions ?? []);
-      } catch {
-        setTxError(true);
-      } finally {
-        setTxLoading(false);
-      }
-    }
-
     loadUser();
-    loadWallet();
+    loadWallet(1);
 
     const params = new URLSearchParams(window.location.search);
     const status = params.get("status");
     if (status === "success") {
-      alert("Payment received — your balance will update shortly once it's confirmed.");
+      alert("Payment received. Your balance will update shortly once it's confirmed.");
     } else if (status === "cancelled") {
       alert("Payment was cancelled.");
     }
-  }, [router]);
+  }, [router, loadWallet]);
 
-      function openDepositModal() {
+  function openDepositModal() {
     setDepositAmount("");
     setDepositModalOpen(true);
   }
@@ -112,15 +124,6 @@ export default function WalletPage() {
   function closeDepositModal() {
     if (funding) return;
     setDepositModalOpen(false);
-  }
-
-  function closeDrawer() {
-    setDrawerOpen(false);
-  }
-
-  function logout() {
-    localStorage.removeItem("token");
-    router.push("/login");
   }
 
   async function confirmDeposit() {
@@ -138,16 +141,11 @@ export default function WalletPage() {
 
     setFunding(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-      const res = await fetch(`${apiUrl}/api/wallet/fund`, {
+      const res = await fetch(`${API}/api/wallet/fund`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ amount }),
       });
-
       const data = await res.json();
 
       if (!res.ok) {
@@ -161,6 +159,15 @@ export default function WalletPage() {
       alert("Something went wrong. Try again.");
       setFunding(false);
     }
+  }
+
+  function closeDrawer() {
+    setDrawerOpen(false);
+  }
+
+  function logout() {
+    localStorage.removeItem("token");
+    router.push("/login");
   }
 
   return (
@@ -362,21 +369,8 @@ export default function WalletPage() {
       <main className="wallet-main">
         <div className="wallet-head-card">
           <div className="wallet-head-icon">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect
-                x="2.5"
-                y="6"
-                width="19"
-                height="13"
-                rx="2.5"
-              />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2.5" y="6" width="19" height="13" rx="2.5" />
               <path d="M2.5 10.5h19" />
               <path d="M6 15h4" />
             </svg>
@@ -384,101 +378,50 @@ export default function WalletPage() {
 
           <div className="wallet-head-text">
             <h1>Balance activity</h1>
-            <p>
-              Top-ups, spending, and balance activity
-            </p>
+            <p>Top-ups, spending, and balance activity</p>
           </div>
 
-            <button
-            className="btn btn-blue wallet-deposit-btn"
-            onClick={openDepositModal}
-            disabled={funding}
-          >
+          <button className="btn btn-blue wallet-deposit-btn" onClick={openDepositModal} disabled={funding}>
             {funding ? "Redirecting..." : "+ Deposit money"}
           </button>
         </div>
-          
+
         {/* Balance statistics */}
         <div className="balance-grid">
           <div className="balance-stat">
             <div className="balance-stat-icon wallet">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect
-                  x="2.5"
-                  y="6"
-                  width="19"
-                  height="13"
-                  rx="2.5"
-                />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2.5" y="6" width="19" height="13" rx="2.5" />
                 <path d="M2.5 10.5h19" />
                 <path d="M6 15h4" />
               </svg>
             </div>
-
-              <div className="balance-stat-amount">
-              <span>₦</span>{naira(balance)}
-            </div>
-
-            <div className="balance-stat-label">
-              Current balance
-            </div>
+            <div className="balance-stat-amount"><span>₦</span>{naira(balance)}</div>
+            <div className="balance-stat-label">Current balance</div>
           </div>
 
           <div className="balance-stat">
             <div className="balance-stat-icon deposit">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 7v10" />
                 <path d="M8.5 10.5c0-1.7 1.6-3 3.5-3s3.5 1 3.5 2.3c0 3-7 1.4-7 4.3 0 1.4 1.6 2.4 3.5 2.4s3.5-1 3.5-2.4" />
               </svg>
             </div>
-
-            <div className="balance-stat-amount">
-              <span>₦</span>{naira(totalDeposit)}
-            </div>
-
-            <div className="balance-stat-label">
-              Total deposit
-            </div>
+            <div className="balance-stat-amount"><span>₦</span>{naira(totalDeposits)}</div>
+            <div className="balance-stat-label">Total deposit</div>
           </div>
 
           <div className="balance-stat">
             <div className="balance-stat-icon used">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="9" cy="20" r="1.4" />
                 <circle cx="18" cy="20" r="1.4" />
                 <path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6" />
               </svg>
             </div>
-
-            <div className="balance-stat-amount">
-              <span>₦</span>{naira(totalSpent)}
-            </div>
-
-            <div className="balance-stat-label">
-              Used
-            </div>
+            <div className="balance-stat-amount"><span>₦</span>{naira(totalSpent)}</div>
+            <div className="balance-stat-label">Used</div>
           </div>
         </div>
 
@@ -486,87 +429,96 @@ export default function WalletPage() {
         <div className="history-card">
           <div className="history-head">
             <div className="history-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M7 7h13l-3-3" />
                 <path d="M17 17H4l3 3" />
               </svg>
             </div>
-
             <h2>Recent transactions</h2>
           </div>
 
-          {txLoading ? (
-            <div className="empty-state">
-              <p>Loading transactions...</p>
-            </div>
-          ) : txError ? (
-            <div className="empty-state">
-              <p>Couldn't load transactions. Please refresh.</p>
-            </div>
-          ) : transactions.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect
-                      x="2.5"
-                      y="6"
-                      width="19"
-                      height="13"
-                      rx="2.5"
-                    />
-                    <path d="M16.5 12.5h.01" />
-                    <path d="M2.5 10.5h19" />
-                  </svg>
-                </div>
+          {!loaded && <p style={{ color: "var(--text-muted)", padding: 16 }}>Loading transactions...</p>}
+          {loaded && loadError && (
+            <p style={{ color: "var(--text-muted)", padding: 16 }}>
+              Couldn't load your transactions right now. Please refresh in a moment.
+            </p>
+          )}
 
-                <h3>No data available</h3>
-
-                <p>No transactions yet.</p>
+          {loaded && !loadError && txns.length === 0 && (
+            <div className="empty-state">
+              <div className="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2.5" y="6" width="19" height="13" rx="2.5" />
+                  <path d="M16.5 12.5h.01" />
+                  <path d="M2.5 10.5h19" />
+                </svg>
               </div>
-          ) : (
-            <ul className="tx-list">
-              {transactions.map((tx) => (
-                <li key={tx.id} className="tx-row">
-                  <div>
-                    <div className="tx-title">
-                      {tx.description ||
-                        (tx.type === "deposit" ? "Wallet deposit" : "Purchase")}
-                    </div>
-                    <div className="tx-date">
-                      {new Date(tx.created_at).toLocaleString()}
-                    </div>
-                  </div>
+              <h3>No data available</h3>
+              <p>No transactions yet.</p>
+            </div>
+          )}
 
-                  <div className="tx-right">
-                    <div className={`tx-amount ${tx.type}`}>
-                      {tx.type === "deposit" ? "+" : "-"}₦{naira(tx.amount)}
+          {loaded && !loadError && txns.length > 0 && (
+            <div style={{ opacity: loadingPage ? 0.6 : 1 }}>
+              {txns.map((t, i) => (
+                <div
+                  key={t.id}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 12,
+                    padding: "14px 16px",
+                    borderTop: i === 0 ? "none" : "1px solid var(--border, rgba(128,128,128,0.2))",
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 600 }}>{typeLabel(t.type)}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>
+                      {new Date(t.createdAt).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}
                     </div>
-                    <span className={`tx-status ${tx.status}`}>
-                      {tx.status}
-                    </span>
                   </div>
-                </li>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontWeight: 700, color: t.amount < 0 ? "var(--text, #fff)" : "#22c55e" }}>
+                      {t.amount < 0 ? "-" : "+"}₦{naira(Math.abs(t.amount))}
+                    </div>
+                    <div style={{ fontSize: 12, marginTop: 4, fontWeight: 600, color: STATUS_COLOR[t.status] || "var(--text-muted)" }}>
+                      {t.status.charAt(0).toUpperCase() + t.status.slice(1)}
+                    </div>
+                  </div>
+                </div>
               ))}
-            </ul>
+
+              {totalPages > 1 && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "14px 16px",
+                    borderTop: "1px solid var(--border, rgba(128,128,128,0.2))",
+                  }}
+                >
+                  <button className="btn btn-ghost" disabled={page <= 1 || loadingPage} onClick={() => loadWallet(page - 1)}>
+                    ← Previous
+                  </button>
+                  <span style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center" }}>
+                    Page {page} of {totalPages}
+                    <br />
+                    {totalCount} transactions
+                  </span>
+                  <button className="btn btn-blue" disabled={page >= totalPages || loadingPage} onClick={() => loadWallet(page + 1)}>
+                    Next →
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </main>
 
-            <footer className="site-footer">
+      <footer className="site-footer">
         <div className="foot-inner">
           <span>© 2026 StacksLogs</span>
           <span>support@stackslogs.com</span>
@@ -578,18 +530,10 @@ export default function WalletPage() {
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3>Deposit money</h3>
-              <button
-                className="modal-close"
-                onClick={closeDepositModal}
-                aria-label="Close"
-              >
-                ✕
-              </button>
+              <button className="modal-close" onClick={closeDepositModal} aria-label="Close">✕</button>
             </div>
 
-            <p className="modal-sub">
-              Enter the amount you want to add to your wallet.
-            </p>
+            <p className="modal-sub">Enter the amount you want to add to your wallet.</p>
 
             <div className="modal-input-shell">
               <span className="modal-input-prefix">₦</span>
@@ -620,18 +564,8 @@ export default function WalletPage() {
             </div>
 
             <div className="modal-actions">
-              <button
-                className="btn btn-ghost"
-                onClick={closeDepositModal}
-                disabled={funding}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-blue"
-                onClick={confirmDeposit}
-                disabled={funding}
-              >
+              <button className="btn btn-ghost" onClick={closeDepositModal} disabled={funding}>Cancel</button>
+              <button className="btn btn-blue" onClick={confirmDeposit} disabled={funding}>
                 {funding ? "Redirecting..." : "Continue"}
               </button>
             </div>

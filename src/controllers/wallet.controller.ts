@@ -1,54 +1,61 @@
 import { Response } from "express";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { db } from "../db";
 import { users, transactions } from "../db/schema";
 import { AuthRequest } from "../middleware/auth.middleware";
 
+/**
+ * GET /api/wallet?page=1&limit=10
+ * Returns the user's balance, lifetime totals (deposits and purchases) and one page of transactions.
+ * All amounts are in kobo.
+ */
 export async function getWallet(req: AuthRequest, res: Response) {
   try {
-    const [user] = await db
-      .select({ balance: users.balance })
-      .from(users)
-      .where(eq(users.id, req.userId!));
+    const userId = req.userId!;
+    const page = Math.max(parseInt(String(req.query.page ?? "1"), 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? "10"), 10) || 10, 1), 50);
 
+    const [user] = await db.select({ balance: users.balance }).from(users).where(eq(users.id, userId));
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const rows = await db
-      .select()
+    // Totals are calculated in the database so they cover every transaction, not just this page.
+    const [agg] = await db
+      .select({
+        total: sql<number>`count(*)::int`,
+        deposits: sql<number>`coalesce(sum(case when ${transactions.type} = 'deposit' and ${transactions.status} = 'completed' then ${transactions.amount} else 0 end), 0)::float8`,
+        spent: sql<number>`coalesce(sum(case when ${transactions.status} = 'completed' and ${transactions.amount} < 0 then -${transactions.amount} else 0 end), 0)::float8`,
+      })
       .from(transactions)
-      .where(eq(transactions.userId, req.userId!))
-      .orderBy(desc(transactions.createdAt));
+      .where(eq(transactions.userId, userId));
 
-    // Only completed transactions count toward the totals.
-    const completed = rows.filter((t) => t.status === "completed");
+    const rows = await db
+      .select({
+        id: transactions.id,
+        type: transactions.type,
+        amount: transactions.amount,
+        status: transactions.status,
+        createdAt: transactions.createdAt,
+      })
+      .from(transactions)
+      .where(eq(transactions.userId, userId))
+      .orderBy(desc(transactions.createdAt))
+      .limit(limit)
+      .offset((page - 1) * limit);
 
-    const totalDeposit = completed
-      .filter((t) => t.type === "deposit")
-      .reduce((sum, t) => sum + t.amount, 0);
+    const total = Number(agg?.total ?? 0);
 
-    const totalSpent = completed
-      .filter((t) => t.amount < 0)
-      .reduce((sum, t) => sum + Math.abs(t.amount), 0);
-
-    // Shape matches what app/wallet/page.tsx expects.
     res.json({
-      balance: user.balance,
-      total_deposit: totalDeposit,
-      total_spent: totalSpent,
-      transactions: rows.slice(0, 50).map((t) => {
-        const isPurchase = t.amount < 0;
-        return {
-          id: t.id,
-          type: isPurchase ? "purchase" : "deposit",
-          status: t.status === "completed" ? "success" : t.status,
-          amount: Math.abs(t.amount),
-          description: isPurchase ? "Purchase" : "Wallet deposit",
-          created_at: t.createdAt,
-        };
-      }),
+      balance: Number(user.balance),
+      totalDeposits: Number(agg?.deposits ?? 0),
+      totalSpent: Number(agg?.spent ?? 0),
+      transactions: rows,
+      page,
+      limit,
+      total,
+      totalPages: Math.max(Math.ceil(total / limit), 1),
     });
   } catch (err) {
-    console.error(err);
+    console.error("getWallet failed:", err);
     res.status(500).json({ error: "Failed to load wallet" });
   }
 }
