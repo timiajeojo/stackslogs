@@ -9,7 +9,7 @@ export type StorefrontItem = { title: string; displayName?: string };
 
 export type StorefrontCategory =
   | { key: string; name: string; items: StorefrontItem[] }
-  | { key: string; name: string; supplierCategory: string; exclude: string[] };
+  | { key: string; name: string; supplierCategory: string | string[]; exclude: string[] };
 
 const t = (title: string, displayName?: string): StorefrontItem => ({ title, displayName });
 
@@ -18,18 +18,18 @@ export const STOREFRONT: StorefrontCategory[] = [
     key: "usa-facebook",
     name: "USA Facebook",
     items: [
-      t("USA FACEBOOK HAVE ALREADY CREATE USA PAGE", "USA FACEBOOK HAVE ALREADY CREATE PAGE"),
-      t("USA faceb00k ( 200 + FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US", "USA facebook | 200 + FRIENDS | real+fake friendss mix | YEAR 2024-2025"),
-      t("USA faceb00k (100+ FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US)", "USA facebook | 100+ FRIENDS | real+fake friends mix | YEAR 2024-2025"),
-      t("USA Facebook Accounts | 30 Friends | Outlook/Hotmail Verified | Avatar Added | Cookies & 2FA Included | USA IP", "USA Facebook Accounts | 30+ Friends | Cookies & 2FA Included"),
+      t("USA FACEBOOK HAVE ALREADY CREATE USA PAGE"),
+      t("USA faceb00k ( 200 + FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US"),
+      t("USA faceb00k (100+ FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US)"),
+      t("USA Facebook Accounts | 30 Friends | Outlook/Hotmail Verified | Avatar Added | Cookies & 2FA Included | USA IP"),
       t("Facebook Accounts | 30-60 Real Friends | Marketplace Enabled | Email Verified & Included | 2FA Included | With Profile Picture | Cookies Included | USA IP Registered"),
     ],
   },
   {
     key: "random-country-fb",
-    name: "Random Country Facebook",
+    name: "Random Country FB",
     items: [
-      t("High Quality 🔥| Random fb | Has Switch Profile 🔂 || Created Year 2010- 2022", "High Quality 🔥| Random fb | Has Switch Profile 🔂 |Year 2010- 2022 |"),
+      t("High Quality 🔥| Random fb | Has Switch Profile 🔂 || Created Year 2010- 2022"),
       t("Facebook Accounts | 30–100 Real Friends | Outlook/Hotmail Email Verified & Included | Male & Female | 2FA Included | Profile Photo Uploaded | Random IP Registered"),
       t("Facebook Random Accounts | Profile Picture | 2FA Included | Hotmail/Outlook Verified | Random IP"),
     ],
@@ -37,7 +37,7 @@ export const STOREFRONT: StorefrontCategory[] = [
   {
     key: "asian-fb",
     name: "Asian Facebook",
-    supplierCategory: "Asian Facebook",
+    supplierCategory: ["Asian Fb", "Asian Facebook"],
     exclude: ["Facebook Random Accounts | Profile Picture | 2FA Included | Hotmail/Outlook Verified | Random IP"],
   },
   {
@@ -45,16 +45,16 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Other Countries Facebook",
     items: [
       t("Facebook Accounts – Australia | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | Profile & Cover Photo | Registered from AU IP"),
-      t("Facebook Accounts – Japan | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | Profile & Cover Photo | Registered from JP IP"),
+      t("Facebook Accounts – Japan | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included"),
       t("Facebook Accounts – Colombia | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | The Profiles Information is Partially Filled | Registered from CO IP"),
       t("Facebook Accounts – Italy | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | Profile & Cover Photo | Registered from IT IP"),
       t("Facebook Accounts – Spain | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | Profile & Cover Photo partially filled | Registered from ES IP"),
       t("Facebook Accounts – France | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | Profile & Cover Photo | Registered from FR IP"),
       t("Facebook Accounts – Canada | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | Profile (Partially Filled) | Registered from CA IP"),
       t("Facebook Accounts – UK | Marketplace + 2FA Enabled | UK SMS & Email Verified | Email Included | Profile & Cover Photo | Registered from UK IP"),
-      t("Facebook Accounts – Germany | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | Profile & Cover Photo | Registered from DE IP"),
+      t("Facebook Accounts – Germany | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included"),
       t("LOCAL FB||EASY LOGIN"),
-      t("Facebook Accounts – New Zealand | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | Profile & Cover Photo | Registered from NZ IP"),
+      t("Facebook Accounts – New Zealand | Marketplace + 2FA Enabled | SMS & Email Verified | Email"),
       t("Facebook Accounts – Vietnam | Marketplace + 2FA Enabled | SMS & Email Verified | Email Access not Included | Profile & Cover Photo | Registered from VN IP"),
       t("Facebook Accounts – Philippines | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | The Profiles Information is Partially Filled | Registered from PHL IP"),
       t("Facebook Accounts – Norway | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | Profile & Cover Photo | Registered from NO IP"),
@@ -141,7 +141,7 @@ export const STOREFRONT: StorefrontCategory[] = [
     items: [
       t("Textplus Microsoft | Tap sign in|Tap others|Select sign in with Microsoft Note: (OVPNSPIDER VPN CONNECT JAPAN)", "Textplus Microsoft"),
       t("New Google Voice (GV) Account | Fully Activated | USA Number | Recovary Or 2FA Included | Fresh Account", "New Google Voice"),
-      t("TextNow usa fresh account"),
+      t("Textnow.com USA Fresh Account | Phone Login"),
     ],
   },
   {
@@ -188,7 +188,7 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Others",
     items: [
       t("Quora Accounts | Premium Quality | Email Verified | Full Email Access | Random country-[ America-Europe-Australia-South America-Asia ]"),
-      t("Linkedin.com Accounts | Email included (Outlook/Hotmail.com). Male or female Accounts are partially filled. Registered from USA."),
+      t("Linkedin.com Accounts | Email included (Outlook/Hotmail.com). Male or female Accounts are"),
       t("Premium Twitch.tv Accounts | Created 2025 - 2026 | Login & Password | Email Not Confirmed | USA Registered IP | Ready to Use"),
       t("PINTEREST | Account registration date is 2020 to 2023. | Mail included. Mail Access Via { Rambler.ru }"),
       t("CGPT Accounts | Ready to Use | Verified by email@outlook.com/hotmail.com (included in the set) | The accounts are registered with USA IP."),

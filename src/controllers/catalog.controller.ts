@@ -58,72 +58,71 @@ function normCat(raw: any): Cat | null {
 }
 const notNull = <T,>(x: T | null): x is T => x !== null;
 
-/** Fetches every page of a listings query. Stops on an empty page, so it works even if YoungPG caps page size below 100. */
+/**
+ * Fetches every page of a listings query. Page 1 first, then batches of 4 pages in
+ * parallel until a batch adds nothing new (so it works even if YoungPG caps page size).
+ */
 async function fetchPaged(base: ListingsQuery): Promise<YpgListing[]> {
   const out = new Map<string, YpgListing>();
-  let prevFirst = "";
-  for (let page = 1; page <= 30; page++) {
-    const { data } = await listListings({ ...base, per_page: 100, page });
-    if (!Array.isArray(data) || data.length === 0) break;
-    if (data[0].slug === prevFirst) break; // the API ignored `page`
-    prevFirst = data[0].slug;
-    data.forEach((p) => out.set(p.slug, p));
+  const first = await listListings({ ...base, per_page: 100, page: 1 });
+  if (!Array.isArray(first.data) || first.data.length === 0) return [];
+  first.data.forEach((p) => out.set(p.slug, p));
+
+  for (let page = 2; page <= 40; page += 4) {
+    const batch = await Promise.all(
+      [page, page + 1, page + 2, page + 3].map((n) =>
+        listListings({ ...base, per_page: 100, page: n })
+          .then((r) => (Array.isArray(r.data) ? r.data : []))
+          .catch(() => [] as YpgListing[])
+      )
+    );
+    const before = out.size;
+    batch.forEach((rows) => rows.forEach((p) => out.set(p.slug, p)));
+    if (out.size === before) break; // nothing new: we've reached the end
   }
   return [...out.values()];
 }
 
-/** Rejects if the promise takes longer than `ms`, so one slow supplier call can't hang the whole storefront. */
-function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
-    p.then(
-      (v) => {
-        clearTimeout(timer);
-        resolve(v);
-      },
-      (e) => {
-        clearTimeout(timer);
-        reject(e);
-      }
-    );
-  });
-}
-
-// "fb" / "faceb00k" -> "facebook" so "Asian Fb" matches "Asian Facebook" and vice versa.
-const catNorm = (s: string) => norm(s).replace(/\bfb\b/g, "facebook").replace(/\bfaceb00k\b/g, "facebook");
-
-/** Finds a YoungPG category (or subcategory) by name. */
-function resolveSupplierCategory(name: string) {
-  return cached(`resolve:${catNorm(name)}`, 30 * 60_000, async () => {
-    const target = catNorm(name);
-    const targetTokens = target.split(" ");
-    const exact = (c: Cat) => catNorm(c.name) === target;
-    const loose = (c: Cat) => {
-      const tokens = new Set(catNorm(c.name).split(" "));
-      return targetTokens.every((x) => tokens.has(x));
+/** Finds a YoungPG category (or subcategory) by any of the given names. */
+function resolveSupplierCategory(names: string[]) {
+  return cached(`resolve:${names.map(norm).join("|")}`, 30 * 60_000, async () => {
+    const targets = names.map(norm);
+    const seen: string[] = [];
+    const score = (c: Cat) => {
+      const n = norm(c.name);
+      return targets.includes(n) ? 2 : targets.some((t) => n.includes(t)) ? 1 : 0;
     };
+    const pick = (list: Cat[]) =>
+      list
+        .map((c) => ({ c, s: score(c) }))
+        .filter((x) => x.s > 0)
+        .sort((a, b) => b.s - a.s)[0]?.c;
 
     const top = ((await listCategories()) as any[]).map(normCat).filter(notNull);
-    const hit = top.find(exact) ?? top.find(loose);
-    if (hit) return { param: "category_id" as const, id: hit.id };
+    top.forEach((c) => seen.push(c.name));
+    const hit = pick(top);
+    if (hit) return { ref: { param: "category_id" as const, id: hit.id }, seen };
 
-    // Scan subcategories a few at a time (sequential scanning made the first page load very slow).
-    const scan = top.slice(0, 30);
-    for (let i = 0; i < scan.length; i += 5) {
-      const results = await Promise.all(
-        scan.slice(i, i + 5).map(async (c) => {
+    // Not a top-level category: look through subcategories, 10 at a time.
+    const limited = top.slice(0, 40);
+    for (let i = 0; i < limited.length; i += 10) {
+      const group = limited.slice(i, i + 10);
+      const batch = await Promise.all(
+        group.map(async (c) => {
           try {
-            const subs = ((await listSubcategories(c.id)) as any[]).map(normCat).filter(notNull);
-            return subs.find(exact) ?? subs.find(loose) ?? null;
+            return ((await listSubcategories(c.id)) as any[]).map(normCat).filter(notNull);
           } catch {
-            return null; // skip a category whose subcategories fail to load
+            return [] as Cat[];
           }
         })
       );
-      const s = results.find((r) => r !== null);
-      if (s) return { param: "subcategory_id" as const, id: s.id };
+      for (let j = 0; j < batch.length; j++) {
+        batch[j].forEach((sc) => seen.push(`${group[j].name} > ${sc.name}`));
+        const sc = pick(batch[j]);
+        if (sc) return { ref: { param: "subcategory_id" as const, id: sc.id }, seen };
+      }
     }
-    return null;
+    return { ref: null, seen };
   });
 }
 
@@ -141,24 +140,22 @@ function findProduct(all: YpgListing[], wanted: string): YpgListing | "ambiguous
   return loose.length > 1 ? "ambiguous" : undefined;
 }
 
-/** For diagnostics only: the catalog title most similar to a wanted one. */
-function closest(all: YpgListing[], wanted: string): string {
+/** For diagnostics only: the catalog titles most similar to a wanted one (full text). */
+function closest(all: YpgListing[], wanted: string): string[] {
   const wt = new Set(norm(wanted).split(" "));
-  let best = "";
-  let bestScore = 0;
-  for (const p of all) {
-    const tokens = new Set(norm(titleOf(p)).split(" "));
-    let inter = 0;
-    wt.forEach((x) => {
-      if (tokens.has(x)) inter++;
-    });
-    const score = inter / (wt.size + tokens.size - inter);
-    if (score > bestScore) {
-      bestScore = score;
-      best = titleOf(p);
-    }
-  }
-  return bestScore >= 0.4 ? best.slice(0, 90) : "nothing similar";
+  return all
+    .map((p) => {
+      const tokens = new Set(norm(titleOf(p)).split(" "));
+      let inter = 0;
+      wt.forEach((x) => {
+        if (tokens.has(x)) inter++;
+      });
+      return { title: titleOf(p), score: inter / (wt.size + tokens.size - inter) };
+    })
+    .filter((x) => x.score >= 0.4)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map((x) => x.title);
 }
 
 function isExcluded(title: string, exclude: string[]) {
@@ -187,6 +184,7 @@ function toStoreProduct(p: YpgListing, displayName?: string): StoreProduct {
 }
 
 async function buildStorefront(): Promise<Built> {
+  const started = Date.now();
   const problems: string[] = [];
   const all = await cached("all-listings", 90_000, () => fetchPaged({}));
   const categories: Built["categories"] = [];
@@ -198,18 +196,20 @@ async function buildStorefront(): Promise<Built> {
       for (const wanted of cat.items) {
         const found = findProduct(all, wanted.title);
         if (!found) {
-          problems.push(`${cat.name}: no match for "${wanted.title.slice(0, 70)}" (closest: "${closest(all, wanted.title)}")`);
+          const near = closest(all, wanted.title);
+          problems.push(`${cat.name}: NO MATCH for "${wanted.title}" | closest: ${near.length ? near.map((n) => `"${n}"`).join(" ; ") : "nothing similar"}`);
         } else if (found === "ambiguous") {
-          problems.push(`${cat.name}: several matches for "${wanted.title.slice(0, 70)}"`);
+          problems.push(`${cat.name}: SEVERAL MATCHES for "${wanted.title}"`);
         } else {
           items.set(found.slug, toStoreProduct(found, wanted.displayName));
         }
       }
     } else {
       try {
-        const ref = await withTimeout(resolveSupplierCategory(cat.supplierCategory), 12_000, "Category lookup");
+        const names = Array.isArray(cat.supplierCategory) ? cat.supplierCategory : [cat.supplierCategory];
+        const { ref, seen } = await resolveSupplierCategory(names);
         if (!ref) {
-          problems.push(`${cat.name}: YoungPG category "${cat.supplierCategory}" not found`);
+          problems.push(`${cat.name}: YoungPG category "${names.join(" / ")}" not found. Categories seen: ${seen.join("; ")}`);
         } else {
           const list = await cached(`cat:${ref.param}:${ref.id}`, 90_000, () =>
             fetchPaged({ [ref.param]: ref.id } as ListingsQuery)
@@ -229,26 +229,39 @@ async function buildStorefront(): Promise<Built> {
   if (problems.length) console.warn("Storefront problems:\n" + problems.join("\n"));
 
   const slugs = new Set(categories.flatMap((c) => c.items.map((i) => i.slug)));
-  console.warn(`Storefront: YoungPG returned ${all.length} listings`);
+  console.log(`Storefront built in ${Date.now() - started}ms from ${all.length} listings`);
   return { fetched: all.length, categories, slugs, problems };
 }
 
-// Keep the last good storefront so visitors never wait on a rebuild.
 let lastGood: Built | null = null;
+let lastBuiltAt = 0;
+let building: Promise<Built> | null = null;
 
+/**
+ * Serves the storefront from memory. When it is older than 90s it is rebuilt;
+ * visitors get the previous version instantly while the rebuild runs in the background.
+ */
 function getStorefront(): Promise<Built> {
-  const build = cached("storefront", 90_000, async () => {
-    const b = await buildStorefront();
-    lastGood = b;
-    return b;
-  });
-  return lastGood ? Promise.resolve(lastGood) : build;
-}
+  if (lastGood && Date.now() - lastBuiltAt < 90_000) return Promise.resolve(lastGood);
 
-// Build it once shortly after the server starts, so the first visitor doesn't wait.
-setTimeout(() => {
-  getStorefront().catch((err) => console.error("Storefront warm-up failed:", err));
-}, 3000);
+  if (!building) {
+    building = buildStorefront()
+      .then((b) => {
+        lastGood = b;
+        lastBuiltAt = Date.now();
+        return b;
+      })
+      .finally(() => {
+        building = null;
+      });
+  }
+
+  if (lastGood) {
+    building.catch((err) => console.error("Storefront refresh failed:", err));
+    return Promise.resolve(lastGood);
+  }
+  return building;
+}
 
 // ---- Browse (public) ----
 
@@ -261,13 +274,14 @@ export async function getCatalog(_req: Request, res: Response) {
   }
 }
 
-/** Admin only: shows which of your configured accounts could not be matched. */
-export async function storefrontCheck(req: AuthRequest, res: Response) {
-  const [me] = await db
-    .select({ isAdmin: users.isAdmin })
-    .from(users)
-    .where(eq(users.id, req.userId!));
-  if (!me?.isAdmin) return res.status(403).json({ error: "Forbidden" });
+/**
+ * Diagnostics: shows which configured accounts could not be matched.
+ * Open /api/catalog/admin/check?key=YOUR_KEY in a browser, where YOUR_KEY is the
+ * STOREFRONT_CHECK_KEY environment variable. Disabled if that variable is not set.
+ */
+export async function storefrontCheck(req: Request, res: Response) {
+  const key = process.env.STOREFRONT_CHECK_KEY;
+  if (!key || req.query.key !== key) return res.status(403).json({ error: "Forbidden" });
 
   try {
     const built = await getStorefront();
