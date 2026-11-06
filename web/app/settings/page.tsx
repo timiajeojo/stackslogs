@@ -2,669 +2,290 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { API, naira, useUser } from "../lib/store";
 
-type Tab = "profile" | "password" | "appearance";
+const labelStyle = { display: "block", fontSize: 13, color: "var(--text-muted)", margin: "0 0 6px" } as const;
+const fieldStyle = { width: "100%", margin: "0 0 16px" } as const;
 
 export default function SettingsPage() {
-  const router = useRouter();
-
+  const { user, setUser, logout } = useUser();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("profile");
-  const [avatar, setAvatar] = useState("U");
 
-  const [fullName, setFullName] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
+  const [saved, setSaved] = useState({ firstName: "", lastName: "", phone: "" });
 
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const [appearance, setAppearance] = useState<
-    "light" | "dark" | "system"
-  >("dark");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    async function loadUser() {
+    if (!token) return; // useUser sends them to /login
+    async function load() {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
-
-        const response = await fetch(`${apiUrl}/api/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          localStorage.removeItem("token");
-          router.push("/login");
-          return;
-        }
-
-        const user = await response.json();
-
-        setEmail(user?.email || "");
-        setFullName(
-          [user?.firstName, user?.lastName]
-            .filter(Boolean)
-            .join(" ")
-        );
-        setAvatar(user?.email?.[0]?.toUpperCase() || "U");
+        const res = await fetch(`${API}/api/account`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) throw new Error("load failed");
+        const d = await res.json();
+        setEmail(d.email || "");
+        setFirstName(d.firstName || "");
+        setLastName(d.lastName || "");
+        setPhone(d.phone || "");
+        setSaved({ firstName: d.firstName || "", lastName: d.lastName || "", phone: d.phone || "" });
       } catch {
-        setAvatar("U");
+        setLoadError(true);
+      } finally {
+        setLoaded(true);
       }
     }
+    load();
+  }, []);
 
-    loadUser();
-  }, [router]);
+  const dirty =
+    firstName.trim() !== saved.firstName || lastName.trim() !== saved.lastName || phone.trim() !== saved.phone;
 
-  function closeDrawer() {
-    setDrawerOpen(false);
-  }
-
-  function logout() {
-    localStorage.removeItem("token");
-    router.push("/login");
-  }
-
-  function saveProfile(e: React.FormEvent) {
-    e.preventDefault();
-    // Profile API can be connected here later.
-  }
-
-  function savePassword(e: React.FormEvent) {
-    e.preventDefault();
-
-    if (newPassword !== confirmPassword) {
-      alert("New passwords do not match.");
-      return;
+  async function save() {
+    if (saving || !dirty) return;
+    setSaving(true);
+    setMsg(null);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/api/account`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ firstName, lastName, phone }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg({ type: "error", text: d.error || "Couldn't save your changes. Please try again." });
+        return;
+      }
+      setFirstName(d.firstName || "");
+      setLastName(d.lastName || "");
+      setPhone(d.phone || "");
+      setSaved({ firstName: d.firstName || "", lastName: d.lastName || "", phone: d.phone || "" });
+      setUser((u) => (u ? { ...u, firstName: d.firstName || "" } : u));
+      setMsg({ type: "ok", text: "Your changes have been saved." });
+    } catch {
+      setMsg({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setSaving(false);
     }
-
-    // Password update API can be connected here later.
   }
 
-  function deleteAccount() {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete your account? This cannot be undone."
-    );
-
-    if (!confirmed) return;
-
-    // Account deletion API can be connected here later.
+  async function deleteAccount() {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/api/account`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setDeleteError(d.error || "Couldn't delete your account. Please try again.");
+        setDeleting(false);
+        return;
+      }
+      logout(); // clears the token and sends them to /login
+    } catch {
+      setDeleteError("Network error. Please try again.");
+      setDeleting(false);
+    }
   }
 
   return (
     <>
       <nav className="dash">
         <div className="nav-left">
-          <button
-            className="burger"
-            onClick={() => setDrawerOpen(true)}
-            aria-label="Open navigation"
-          >
-            <span />
-            <span />
-            <span />
+          <button className="burger" onClick={() => setDrawerOpen(true)} aria-label="Open navigation">
+            <span /><span /><span />
           </button>
         </div>
-
         <Link href="/dashboard" className="logo">
-          <span className="mark">S</span>
-          StacksLogs
+          <span className="mark">S</span>StacksLogs
         </Link>
-
         <div className="nav-right">
-          <div className="avatar">{avatar}</div>
+          <div className="avatar">{(email || user?.email || "")[0]?.toUpperCase() || ""}</div>
         </div>
       </nav>
 
-      <div
-        className={`drawer-overlay ${
-          drawerOpen ? "open" : ""
-        }`}
-        onClick={closeDrawer}
-      />
-
+      <div className={`drawer-overlay ${drawerOpen ? "open" : ""}`} onClick={() => setDrawerOpen(false)} />
       <aside className={`drawer ${drawerOpen ? "open" : ""}`}>
         <div className="drawer-head">
-          <Link
-            href="/dashboard"
-            className="logo"
-            onClick={closeDrawer}
-          >
-            <span className="mark">S</span>
-            StacksLogs
+          <Link href="/dashboard" className="logo" onClick={() => setDrawerOpen(false)}>
+            <span className="mark">S</span>StacksLogs
           </Link>
-
-          <button
-            className="drawer-close"
-            onClick={closeDrawer}
-            aria-label="Close navigation"
-          >
-            ✕
-          </button>
+          <button className="drawer-close" onClick={() => setDrawerOpen(false)} aria-label="Close navigation">✕</button>
         </div>
-
-        <div className="drawer-section-label">
-          Home
-        </div>
-
-        <Link
-          href="/dashboard"
-          className="drawer-item"
-          onClick={closeDrawer}
-        >
-          <span className="d-icon">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 10.5 12 3l9 7.5" />
-              <path d="M5 9.5V21h14V9.5" />
-            </svg>
-          </span>
-          Dashboard
-        </Link>
-
-        <div className="drawer-section-label">
-          Account
-        </div>
-
-        <Link
-          href="/orders"
-          className="drawer-item"
-          onClick={closeDrawer}
-        >
-          <span className="d-icon">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="9" cy="20" r="1.4" />
-              <circle cx="18" cy="20" r="1.4" />
-              <path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6" />
-            </svg>
-          </span>
-          My orders
-        </Link>
-
-        <Link
-          href="/wallet"
-          className="drawer-item"
-          onClick={closeDrawer}
-        >
-          <span className="d-icon">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect
-                x="2.5"
-                y="6"
-                width="19"
-                height="13"
-                rx="2.5"
-              />
-              <path d="M2.5 10.5h19" />
-              <path d="M6 15h4" />
-            </svg>
-          </span>
-          Add funds
-        </Link>
-
-        <Link
-          href="/settings"
-          className="drawer-item active"
-          onClick={closeDrawer}
-        >
-          <span className="d-icon">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.35a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.65 15a1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.65a1.7 1.7 0 0 0 1.04-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.35 9c.13.47.5.86 1.56 1.04H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1.04Z" />
-            </svg>
-          </span>
-          Settings
-        </Link>
-
-        <div className="drawer-item">
-          <span className="d-icon">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M3 13a9 9 0 0 1 18 0" />
-              <path d="M21 13v4a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2Z" />
-              <path d="M3 13v4a2 2 0 0 0 2 2h1v-6H5a2 2 0 0 0-2 2Z" />
-            </svg>
-          </span>
-          Customer care
-        </div>
-
+        <div className="drawer-section-label">Home</div>
+        <Link href="/dashboard" className="drawer-item" onClick={() => setDrawerOpen(false)}>Dashboard</Link>
+        <div className="drawer-section-label">Account</div>
+        <Link href="/orders" className="drawer-item" onClick={() => setDrawerOpen(false)}>My orders</Link>
+        <Link href="/wallet" className="drawer-item" onClick={() => setDrawerOpen(false)}>Add funds</Link>
+        <Link href="/settings" className="drawer-item active" onClick={() => setDrawerOpen(false)}>Settings</Link>
+        <div className="drawer-item">Customer care</div>
         <div className="drawer-spacer" />
-
         <div className="drawer-logout">
-          <button
-            className="drawer-item"
-            onClick={logout}
-          >
-            <span className="d-icon">
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <path d="M16 17l5-5-5-5" />
-                <path d="M21 12H9" />
-              </svg>
-            </span>
-            Logout
-          </button>
+          <button className="drawer-item logout" onClick={logout}>Logout</button>
         </div>
       </aside>
 
-      <main className="settings-main">
-        <div className="settings-head">
-          <h1>Settings</h1>
-          <p>Manage your profile and account settings</p>
-        </div>
+      <main className="dash-main">
+        <h1 style={{ fontSize: 26, margin: "0 0 18px" }}>Settings</h1>
 
-        <div className="settings-layout">
-          <div className="settings-tabs">
-            <button
-              className={`settings-tab ${
-                activeTab === "profile" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("profile")}
+        {!loaded && <p style={{ color: "var(--text-muted)" }}>Loading your details...</p>}
+        {loaded && loadError && (
+          <p style={{ color: "var(--text-muted)" }}>Couldn't load your details right now. Please refresh in a moment.</p>
+        )}
+
+        {loaded && !loadError && (
+          <>
+            <section
+              style={{
+                background: "var(--surface, #0f1626)",
+                border: "1px solid var(--border, rgba(128,128,128,0.25))",
+                borderRadius: 16,
+                padding: 18,
+                marginBottom: 20,
+              }}
             >
-              Profile
-            </button>
+              <h2 style={{ fontSize: 17, margin: "0 0 16px" }}>Profile</h2>
 
-            <button
-              className={`settings-tab ${
-                activeTab === "password" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("password")}
+              <label style={labelStyle} htmlFor="firstName">First name</label>
+              <input
+                id="firstName"
+                className="search-input"
+                style={fieldStyle}
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                maxLength={100}
+                autoComplete="given-name"
+              />
+
+              <label style={labelStyle} htmlFor="lastName">Last name</label>
+              <input
+                id="lastName"
+                className="search-input"
+                style={fieldStyle}
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                maxLength={100}
+                autoComplete="family-name"
+              />
+
+              <label style={labelStyle} htmlFor="email">Email</label>
+              <input
+                id="email"
+                className="search-input"
+                style={{ ...fieldStyle, margin: "0 0 4px", opacity: 0.6, cursor: "not-allowed" }}
+                value={email}
+                readOnly
+                disabled
+              />
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 16px" }}>Your email can't be changed.</p>
+
+              <label style={labelStyle} htmlFor="phone">Phone number</label>
+              <input
+                id="phone"
+                className="search-input"
+                style={fieldStyle}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="e.g. 08012345678"
+                inputMode="tel"
+                maxLength={30}
+                autoComplete="tel"
+              />
+
+              {msg && (
+                <p style={{ fontSize: 13, margin: "0 0 12px", color: msg.type === "ok" ? "#22c55e" : "#f87171" }}>{msg.text}</p>
+              )}
+
+              <button className="btn btn-blue" onClick={save} disabled={saving || !dirty}>
+                {saving ? "Saving..." : "Save changes"}
+              </button>
+            </section>
+
+            <section
+              style={{
+                background: "var(--surface, #0f1626)",
+                border: "1px solid rgba(248,113,113,0.4)",
+                borderRadius: 16,
+                padding: 18,
+                marginBottom: 20,
+              }}
             >
-              Password
-            </button>
-
-            <button
-              className={`settings-tab ${
-                activeTab === "appearance" ? "active" : ""
-              }`}
-              onClick={() => setActiveTab("appearance")}
-            >
-              Appearance
-            </button>
-          </div>
-
-          <div>
-            {activeTab === "profile" && (
-              <div className="settings-panel">
-                <form
-                  className="panel-card"
-                  onSubmit={saveProfile}
-                >
-                  <h2>Profile information</h2>
-                  <p className="panel-sub">
-                    Update your name and email address
-                  </p>
-
-                  <div className="field">
-                    <label htmlFor="fullName">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      id="fullName"
-                      value={fullName}
-                      onChange={(e) =>
-                        setFullName(e.target.value)
-                      }
-                      placeholder="Your name"
-                    />
-                  </div>
-
-                  <div className="field">
-                    <label htmlFor="settingsEmail">
-                      Email address
-                    </label>
-                    <input
-                      type="email"
-                      id="settingsEmail"
-                      value={email}
-                      disabled
-                      readOnly
-                    />
-                    <div className="field-note">
-                      Your email address can't be changed.
-                    </div>
-                  </div>
-
-                  <div className="field last-field">
-                    <label htmlFor="phone">
-                      Phone number
-                    </label>
-                    <input
-                      type="tel"
-                      id="phone"
-                      value={phone}
-                      onChange={(e) =>
-                        setPhone(e.target.value)
-                      }
-                      placeholder="e.g. 07048054133"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn btn-blue"
-                  >
-                    Save
-                  </button>
-                </form>
-
-                <div className="panel-card">
-                  <h2>Delete account</h2>
-                  <p className="panel-sub">
-                    Delete your account and all of its
-                    resources
-                  </p>
-
-                  <div className="warning-box">
-                    <div className="w-title">
-                      Warning
-                    </div>
-
-                    <p>
-                      Please proceed with caution, this
-                      cannot be undone.
-                    </p>
-
-                    <button
-                      type="button"
-                      className="btn btn-danger"
-                      onClick={deleteAccount}
-                    >
-                      Delete account
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "password" && (
-              <div className="settings-panel">
-                <form
-                  className="panel-card"
-                  onSubmit={savePassword}
-                >
-                  <h2>Update password</h2>
-
-                  <p className="panel-sub">
-                    Ensure your account is using a long,
-                    random password to stay secure
-                  </p>
-
-                  <div className="field">
-                    <label htmlFor="currentPassword">
-                      Current password
-                    </label>
-
-                    <div className="input-shell">
-                      <input
-                        type={
-                          showCurrent
-                            ? "text"
-                            : "password"
-                        }
-                        id="currentPassword"
-                        value={currentPassword}
-                        onChange={(e) =>
-                          setCurrentPassword(
-                            e.target.value
-                          )
-                        }
-                        placeholder="Current password"
-                      />
-
-                      <button
-                        type="button"
-                        className="toggle-pass"
-                        onClick={() =>
-                          setShowCurrent(!showCurrent)
-                        }
-                      >
-                        {showCurrent ? "HIDE" : "SHOW"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="field">
-                    <label htmlFor="newPassword">
-                      New password
-                    </label>
-
-                    <div className="input-shell">
-                      <input
-                        type={
-                          showNew
-                            ? "text"
-                            : "password"
-                        }
-                        id="newPassword"
-                        value={newPassword}
-                        onChange={(e) =>
-                          setNewPassword(
-                            e.target.value
-                          )
-                        }
-                        placeholder="New password"
-                      />
-
-                      <button
-                        type="button"
-                        className="toggle-pass"
-                        onClick={() =>
-                          setShowNew(!showNew)
-                        }
-                      >
-                        {showNew ? "HIDE" : "SHOW"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="field last-field">
-                    <label htmlFor="confirmPassword">
-                      Confirm password
-                    </label>
-
-                    <div className="input-shell">
-                      <input
-                        type={
-                          showConfirm
-                            ? "text"
-                            : "password"
-                        }
-                        id="confirmPassword"
-                        value={confirmPassword}
-                        onChange={(e) =>
-                          setConfirmPassword(
-                            e.target.value
-                          )
-                        }
-                        placeholder="Confirm password"
-                      />
-
-                      <button
-                        type="button"
-                        className="toggle-pass"
-                        onClick={() =>
-                          setShowConfirm(!showConfirm)
-                        }
-                      >
-                        {showConfirm ? "HIDE" : "SHOW"}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn btn-blue"
-                  >
-                    Save password
-                  </button>
-                </form>
-              </div>
-            )}
-
-            {activeTab === "appearance" && (
-              <div className="settings-panel">
-                <div className="panel-card">
-                  <h2>Appearance settings</h2>
-
-                  <p className="panel-sub">
-                    Update your account's appearance
-                    settings
-                  </p>
-
-                  <div className="appearance-row">
-                    <button
-                      type="button"
-                      className={`appearance-opt ${
-                        appearance === "light"
-                          ? "selected"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        setAppearance("light")
-                      }
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <circle
-                          cx="12"
-                          cy="12"
-                          r="4"
-                        />
-                        <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-                      </svg>
-                      <span>Light</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`appearance-opt ${
-                        appearance === "dark"
-                          ? "selected"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        setAppearance("dark")
-                      }
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" />
-                      </svg>
-                      <span>Dark</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      className={`appearance-opt ${
-                        appearance === "system"
-                          ? "selected"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        setAppearance("system")
-                      }
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <rect
-                          x="2.5"
-                          y="4.5"
-                          width="19"
-                          height="13"
-                          rx="2"
-                        />
-                        <path d="M8 21h8M12 17.5V21" />
-                      </svg>
-                      <span>System</span>
-                    </button>
-                  </div>
-  </div>
-  </div>
-      )}
-          </div>
-        </div>
+              <h2 style={{ fontSize: 17, margin: "0 0 8px", color: "#f87171" }}>Delete account</h2>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
+                This permanently closes your account and removes your personal details. You won't be able to log in again.
+              </p>
+              <button
+                className="btn"
+                style={{ background: "#dc2626", color: "#fff", border: "none" }}
+                onClick={() => {
+                  setDeleteError("");
+                  setConfirmOpen(true);
+                }}
+              >
+                Delete account
+              </button>
+            </section>
+          </>
+        )}
       </main>
 
+      {confirmOpen && (
+        <div
+          onClick={() => !deleting && setConfirmOpen(false)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.65)", zIndex: 100,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%", maxWidth: 400, background: "var(--surface, #0f1626)", color: "var(--text, #fff)",
+              border: "1px solid var(--border-strong, rgba(128,128,128,0.4))", borderRadius: 16, padding: 20,
+            }}
+          >
+            <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>Delete your account?</div>
+            <p style={{ fontSize: 14, lineHeight: 1.5, margin: "0 0 10px" }}>
+              This can't be undone. You'll be logged out and won't be able to sign in with this account again.
+            </p>
+            {(user?.balance || 0) > 0 && (
+              <p style={{ fontSize: 14, lineHeight: 1.5, margin: "0 0 10px", color: "#f59e0b" }}>
+                Your remaining balance of ₦{naira(user?.balance || 0)} will be lost.
+              </p>
+            )}
+            {deleteError && <p style={{ fontSize: 13, color: "#f87171", margin: "0 0 10px" }}>{deleteError}</p>}
+            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+              <button className="btn btn-ghost" onClick={() => setConfirmOpen(false)} disabled={deleting}>Cancel</button>
+              <button
+                className="btn"
+                style={{ background: "#dc2626", color: "#fff", border: "none" }}
+                onClick={deleteAccount}
+                disabled={deleting}
+              >
+                {deleting ? "Deleting..." : "Yes, delete my account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <footer className="site-footer">
-      <div className="foot-inner">
-            <span>© 2026 Stackslogs</span>
-      <span>support@stackslogs.com</span>
-    </div>
-    </footer>
+        <div className="foot-inner" style={{ justifyContent: "center", textAlign: "center" }}>
+          <span>© 2026 StacksLogs</span>
+        </div>
+      </footer>
     </>
-    )
+  );
 }
