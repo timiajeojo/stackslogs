@@ -7,6 +7,62 @@ import { API, naira, useUser } from "../lib/store";
 const labelStyle = { display: "block", fontSize: 13, color: "var(--text-muted)", margin: "0 0 6px" } as const;
 const fieldStyle = { width: "100%", margin: "0 0 16px" } as const;
 
+type Theme = "dark" | "light" | "system";
+
+function applyTheme(theme: Theme) {
+  const root = document.documentElement;
+  if (theme === "system") root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", theme);
+}
+
+function PasswordInput({
+  id,
+  value,
+  onChange,
+  autoComplete,
+  margin = "0 0 16px",
+}: {
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  autoComplete: string;
+  margin?: string;
+}) {
+  const [show, setShow] = useState(false);
+  return (
+    <div style={{ position: "relative", margin }}>
+      <input
+        id={id}
+        type={show ? "text" : "password"}
+        className="search-input"
+        style={{ width: "100%", paddingRight: 44 }}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        autoComplete={autoComplete}
+        maxLength={128}
+      />
+      <button
+        type="button"
+        onClick={() => setShow((s) => !s)}
+        aria-label={show ? "Hide password" : "Show password"}
+        aria-pressed={show}
+        style={{
+          position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+          background: "none", border: "none", padding: 6, cursor: "pointer",
+          color: "var(--text-muted)", display: "flex", alignItems: "center",
+        }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" />
+          <circle cx="12" cy="12" r="3" />
+          {!show && <path d="M3 3l18 18" />}
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 export default function SettingsPage() {
   const { user, setUser, logout } = useUser();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -27,6 +83,24 @@ export default function SettingsPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [pwSaving, setPwSaving] = useState(false);
   const [pwMsg, setPwMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  const [theme, setTheme] = useState<Theme>("system");
+  useEffect(() => {
+    try {
+      const t = localStorage.getItem("theme");
+      if (t === "dark" || t === "light" || t === "system") setTheme(t);
+    } catch {}
+  }, []);
+
+  function chooseTheme(next: Theme) {
+    setTheme(next);
+    applyTheme(next);
+    try {
+      localStorage.setItem("theme", next);
+    } catch {}
+  }
+
+  const hasFunds = (user?.balance || 0) > 0;
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -122,7 +196,7 @@ export default function SettingsPage() {
   }
 
   async function deleteAccount() {
-    if (deleting) return;
+    if (deleting || hasFunds) return;
     setDeleting(true);
     setDeleteError("");
     try {
@@ -266,42 +340,32 @@ export default function SettingsPage() {
               <h2 style={{ fontSize: 17, margin: "0 0 16px" }}>Password</h2>
 
               <label style={labelStyle} htmlFor="currentPassword">Current password</label>
-              <input
+              <PasswordInput
                 id="currentPassword"
-                type="password"
-                className="search-input"
-                style={fieldStyle}
                 value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
+                onChange={setCurrentPassword}
                 autoComplete="current-password"
-                maxLength={128}
               />
 
               <label style={labelStyle} htmlFor="newPassword">New password</label>
-              <input
+              <PasswordInput
                 id="newPassword"
-                type="password"
-                className="search-input"
-                style={{ ...fieldStyle, margin: "0 0 4px" }}
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={setNewPassword}
                 autoComplete="new-password"
-                maxLength={128}
+                margin="0 0 4px"
               />
               <p style={{ fontSize: 12, margin: "0 0 16px", color: pwTooShort ? "#f87171" : "var(--text-muted)" }}>
                 At least 8 characters.
               </p>
 
               <label style={labelStyle} htmlFor="confirmPassword">Confirm new password</label>
-              <input
+              <PasswordInput
                 id="confirmPassword"
-                type="password"
-                className="search-input"
-                style={{ ...fieldStyle, margin: "0 0 4px" }}
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={setConfirmPassword}
                 autoComplete="new-password"
-                maxLength={128}
+                margin="0 0 4px"
               />
               <p style={{ fontSize: 12, margin: "0 0 16px", color: "#f87171", minHeight: 16 }}>
                 {pwMismatch ? "Passwords don't match." : ""}
@@ -321,6 +385,36 @@ export default function SettingsPage() {
             <section
               style={{
                 background: "var(--surface, #0f1626)",
+                border: "1px solid var(--border, rgba(128,128,128,0.25))",
+                borderRadius: 16,
+                padding: 18,
+                marginBottom: 20,
+              }}
+            >
+              <h2 style={{ fontSize: 17, margin: "0 0 6px" }}>Appearance</h2>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px" }}>
+                Choose how StacksLogs looks. System follows your device setting.
+              </p>
+              <div role="radiogroup" aria-label="Theme" style={{ display: "flex", gap: 8 }}>
+                {(["dark", "light", "system"] as Theme[]).map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    role="radio"
+                    aria-checked={theme === option}
+                    onClick={() => chooseTheme(option)}
+                    className={theme === option ? "btn btn-blue" : "btn btn-ghost"}
+                    style={{ flex: 1, textTransform: "capitalize" }}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section
+              style={{
+                background: "var(--surface, #0f1626)",
                 border: "1px solid rgba(248,113,113,0.4)",
                 borderRadius: 16,
                 padding: 18,
@@ -331,9 +425,18 @@ export default function SettingsPage() {
               <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.5 }}>
                 This permanently closes your account and removes your personal details. You won't be able to log in again.
               </p>
+              {hasFunds && (
+                <p style={{ fontSize: 13, color: "#f59e0b", margin: "0 0 14px", lineHeight: 1.5 }}>
+                  You still have ₦{naira(user?.balance || 0)} in your account. Use up your balance before deleting your account.
+                </p>
+              )}
               <button
                 className="btn"
-                style={{ background: "#dc2626", color: "#fff", border: "none" }}
+                disabled={hasFunds}
+                style={{
+                  background: "#dc2626", color: "#fff", border: "none",
+                  opacity: hasFunds ? 0.5 : 1, cursor: hasFunds ? "not-allowed" : "pointer",
+                }}
                 onClick={() => {
                   setDeleteError("");
                   setConfirmOpen(true);
