@@ -97,6 +97,77 @@ app.get("/api/me", requireAuth, async (req: AuthRequest, res) => {
   res.json({ id: user.id, email: user.email, firstName: user.firstName, balance: user.balance });
 });
 
+// ---- Account settings (used by the /settings page) ----
+const clean = (v: unknown, max: number) =>
+  typeof v === "string" ? v.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, max) : "";
+
+const accountPayload = (u: typeof users.$inferSelect) => ({
+  email: u.email,
+  firstName: u.firstName ?? "",
+  lastName: (u as any).lastName ?? "",
+  phone: (u as any).phone ?? "",
+});
+
+app.get("/api/account", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, req.userId!));
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(accountPayload(user));
+  } catch (err) {
+    console.error("GET /api/account failed:", err);
+    res.status(500).json({ error: "Couldn't load your details." });
+  }
+});
+
+app.patch("/api/account", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const firstName = clean(req.body?.firstName, 100);
+    const lastName = clean(req.body?.lastName, 100);
+    const phone = clean(req.body?.phone, 30);
+
+    if (!firstName) return res.status(400).json({ error: "First name is required." });
+    if (phone && !/^[0-9+()\-\s]{7,30}$/.test(phone)) {
+      return res.status(400).json({ error: "Enter a valid phone number." });
+    }
+
+    const [updated] = await db
+      .update(users)
+      .set({ firstName, lastName, phone } as any)
+      .where(eq(users.id, req.userId!))
+      .returning();
+
+    if (!updated) return res.status(404).json({ error: "User not found" });
+    res.json(accountPayload(updated));
+  } catch (err) {
+    console.error("PATCH /api/account failed:", err);
+    res.status(500).json({ error: "Couldn't save your changes." });
+  }
+});
+
+app.delete("/api/account", requireAuth, async (req: AuthRequest, res) => {
+  try {
+    // Anonymise instead of hard-deleting so transaction history (foreign keys) stays intact.
+    // The email is replaced, so the old address can no longer log in.
+    const [updated] = await db
+      .update(users)
+      .set({
+        email: `deleted+${req.userId}@deleted.invalid`,
+        firstName: "",
+        lastName: "",
+        phone: "",
+        balance: 0,
+      } as any)
+      .where(eq(users.id, req.userId!))
+      .returning();
+
+    if (!updated) return res.status(404).json({ error: "User not found" });
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("DELETE /api/account failed:", err);
+    res.status(500).json({ error: "Couldn't delete your account." });
+  }
+});
+
 app.post("/api/wallet/fund", requireAuth, async (req: AuthRequest, res) => {
   try {
     const amountNaira = Number(req.body.amount);
