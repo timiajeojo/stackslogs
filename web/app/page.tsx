@@ -22,6 +22,12 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMsg, setPwMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
@@ -80,6 +86,38 @@ export default function SettingsPage() {
       setMsg({ type: "error", text: "Network error. Please try again." });
     } finally {
       setSaving(false);
+    }
+  }
+
+  const pwTooShort = newPassword.length > 0 && newPassword.length < 8;
+  const pwMismatch = confirmPassword.length > 0 && newPassword !== confirmPassword;
+  const pwReady =
+    !!currentPassword && newPassword.length >= 8 && newPassword === confirmPassword && !pwSaving;
+
+  async function changePassword() {
+    if (!pwReady) return;
+    setPwSaving(true);
+    setPwMsg(null);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/api/account/password`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPwMsg({ type: "error", text: d.error || "Couldn't change your password. Please try again." });
+        return;
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPwMsg({ type: "ok", text: "Your password has been changed." });
+    } catch {
+      setPwMsg({ type: "error", text: "Network error. Please try again." });
+    } finally {
+      setPwSaving(false);
     }
   }
 
@@ -213,6 +251,70 @@ export default function SettingsPage() {
 
               <button className="btn btn-blue" onClick={save} disabled={saving || !dirty}>
                 {saving ? "Saving..." : "Save changes"}
+              </button>
+            </section>
+
+            <section
+              style={{
+                background: "var(--surface, #0f1626)",
+                border: "1px solid var(--border, rgba(128,128,128,0.25))",
+                borderRadius: 16,
+                padding: 18,
+                marginBottom: 20,
+              }}
+            >
+              <h2 style={{ fontSize: 17, margin: "0 0 16px" }}>Password</h2>
+
+              <label style={labelStyle} htmlFor="currentPassword">Current password</label>
+              <input
+                id="currentPassword"
+                type="password"
+                className="search-input"
+                style={fieldStyle}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                autoComplete="current-password"
+                maxLength={128}
+              />
+
+              <label style={labelStyle} htmlFor="newPassword">New password</label>
+              <input
+                id="newPassword"
+                type="password"
+                className="search-input"
+                style={{ ...fieldStyle, margin: "0 0 4px" }}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+                maxLength={128}
+              />
+              <p style={{ fontSize: 12, margin: "0 0 16px", color: pwTooShort ? "#f87171" : "var(--text-muted)" }}>
+                At least 8 characters.
+              </p>
+
+              <label style={labelStyle} htmlFor="confirmPassword">Confirm new password</label>
+              <input
+                id="confirmPassword"
+                type="password"
+                className="search-input"
+                style={{ ...fieldStyle, margin: "0 0 4px" }}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+                maxLength={128}
+              />
+              <p style={{ fontSize: 12, margin: "0 0 16px", color: "#f87171", minHeight: 16 }}>
+                {pwMismatch ? "Passwords don't match." : ""}
+              </p>
+
+              {pwMsg && (
+                <p style={{ fontSize: 13, margin: "0 0 12px", color: pwMsg.type === "ok" ? "#22c55e" : "#f87171" }}>
+                  {pwMsg.text}
+                </p>
+              )}
+
+              <button className="btn btn-blue" onClick={changePassword} disabled={!pwReady}>
+                {pwSaving ? "Updating..." : "Confirm password change"}
               </button>
             </section>
 
