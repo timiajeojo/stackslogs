@@ -1,52 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
-import { API, naira, Product, useCatalog } from "../../lib/store";
+import { Product, useCatalog, useUser } from "../../lib/store";
 import BuyModal from "../../components/BuyModal";
 import CategoryBox from "../../components/CategoryBox";
 
 export default function CategoryPage() {
-  const router = useRouter();
   const params = useParams<{ key: string }>();
   const key = decodeURIComponent(String(params?.key || ""));
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [user, setUser] = useState<{ email: string; firstName: string; balance: number } | null>(null);
+  const { user, setUser, logout } = useUser();
   const { categories, setCategories, loading, error } = useCatalog();
   const [search, setSearch] = useState("");
   const [buyItem, setBuyItem] = useState<Product | null>(null);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-    async function loadUser() {
-      const meRes = await fetch(`${API}/api/me`, { headers: { Authorization: `Bearer ${token}` } });
-      if (!meRes.ok) {
-        localStorage.removeItem("token");
-        router.push("/login");
-        return;
-      }
-      setUser(await meRes.json());
-    }
-    loadUser();
-  }, [router]);
-
-  function logout() {
-    localStorage.removeItem("token");
-    router.push("/login");
-  }
-
-  if (!user) {
-    return (
-      <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div className="logo"><span className="mark">S</span>StacksLogs</div>
-      </div>
-    );
-  }
 
   const cat = categories.find((c) => c.key === key);
   const query = search.trim().toLowerCase();
@@ -62,7 +30,7 @@ export default function CategoryPage() {
         </div>
         <div className="logo"><span className="mark">S</span>StacksLogs</div>
         <div className="nav-right">
-          <div className="avatar">{user.email?.[0]?.toUpperCase() || "U"}</div>
+          <div className="avatar">{user?.email?.[0]?.toUpperCase() || ""}</div>
         </div>
       </nav>
 
@@ -113,7 +81,7 @@ export default function CategoryPage() {
         )}
       </main>
 
-      {buyItem && (
+      {buyItem && user && (
         <BuyModal
           item={buyItem}
           balance={user.balance}
