@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -23,6 +23,21 @@ const STATUS_COLOR: Record<string, string> = {
   failed: "#f87171",
   abandoned: "#94a3b8",
 };
+
+// Square chevron button used for page navigation.
+const pageBtnStyle = (primary: boolean, disabled: boolean): CSSProperties => ({
+  width: 44,
+  height: 44,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  borderRadius: 12,
+  cursor: disabled ? "not-allowed" : "pointer",
+  opacity: disabled ? 0.35 : 1,
+  color: primary ? "#fff" : "var(--text, #fff)",
+  background: primary ? "var(--blue, #3D8FFF)" : "var(--surface-2, rgba(128,128,128,0.15))",
+  border: primary ? "none" : "1px solid var(--border-strong, rgba(128,128,128,0.4))",
+});
 
 const typeLabel = (t: string) =>
   t === "deposit" ? "Deposit" : t === "purchase" ? "Purchase" : t.charAt(0).toUpperCase() + t.slice(1);
@@ -496,34 +511,42 @@ export default function WalletPage() {
           {loaded && !loadError && txns.length > 0 && totalPages > 1 && (
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "1fr auto 1fr",
+                display: "flex",
                 alignItems: "center",
-                gap: 10,
+                justifyContent: "center",
+                gap: 16,
                 padding: "16px",
                 borderTop: "1px solid var(--border-strong, rgba(128,128,128,0.3))",
               }}
             >
               <button
-                className="btn btn-ghost"
-                style={{ width: "100%" }}
+                type="button"
+                aria-label="Previous page"
                 disabled={page <= 1 || loadingPage}
                 onClick={() => loadWallet(page - 1)}
+                style={pageBtnStyle(false, page <= 1 || loadingPage)}
               >
-                ← Previous
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M15 5l-7 7 7 7" />
+                </svg>
               </button>
-              <span style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center" }}>
+
+              <span style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center", minWidth: 110 }}>
                 Page {page} of {totalPages}
                 <br />
                 {totalCount} transactions
               </span>
+
               <button
-                className="btn btn-blue"
-                style={{ width: "100%" }}
+                type="button"
+                aria-label="Next page"
                 disabled={page >= totalPages || loadingPage}
                 onClick={() => loadWallet(page + 1)}
+                style={pageBtnStyle(true, page >= totalPages || loadingPage)}
               >
-                Next →
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 5l7 7-7 7" />
+                </svg>
               </button>
             </div>
           )}
