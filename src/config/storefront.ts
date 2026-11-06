@@ -27,7 +27,7 @@ export const STOREFRONT: StorefrontCategory[] = [
   },
   {
     key: "random-country-fb",
-    name: "Random Country FB",
+    name: "Random Country Facebook",
     items: [
       t("High Quality 🔥| Random fb | Has Switch Profile 🔂 || Created Year 2010- 2022"),
       t("Facebook Accounts | 30–100 Real Friends | Outlook/Hotmail Email Verified & Included | Male & Female | 2FA Included | Profile Photo Uploaded | Random IP Registered"),
@@ -36,13 +36,13 @@ export const STOREFRONT: StorefrontCategory[] = [
   },
   {
     key: "asian-fb",
-    name: "Asian FB",
-    supplierCategory: "Asian Fb",
+    name: "Asian Facebook",
+    supplierCategory: "Asian Facebook",
     exclude: ["Facebook Random Accounts | Profile Picture | 2FA Included | Hotmail/Outlook Verified | Random IP"],
   },
   {
     key: "other-countries-fb",
-    name: "Other Countries FB",
+    name: "Other Countries Facebook",
     items: [
       t("Facebook Accounts – Australia | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | Profile & Cover Photo | Registered from AU IP"),
       t("Facebook Accounts – Japan | Marketplace + 2FA Enabled | SMS & Email Verified | Email Included | Profile & Cover Photo | Registered from JP IP"),
