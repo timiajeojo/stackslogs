@@ -1,4 +1,4 @@
-// src/config/storefront.ts
+ // src/config/storefront.ts
 // The curated storefront: only the accounts listed here are shown and sold.
 // Titles are matched against YoungPG's catalog ignoring case, punctuation, emoji and spacing,
 // so small formatting differences are fine. `displayName` renames an account for your customers.
@@ -18,10 +18,10 @@ export const STOREFRONT: StorefrontCategory[] = [
     key: "usa-facebook",
     name: "USA Facebook",
     items: [
-      t("USA FACEBOOK HAVE ALREADY CREATE USA PAGE"),
-      t("USA faceb00k ( 200 + FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US"),
-      t("USA faceb00k (100+ FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US)"),
-      t("USA Facebook Accounts | 30 Friends | Outlook/Hotmail Verified | Avatar Added | Cookies & 2FA Included | USA IP"),
+      t("USA FACEBOOK HAVE ALREADY CREATE USA PAGE", "USA FACEBOOK HAVE ALREADY CREATE PAGE"),
+      t("USA faceb00k ( 200 + FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US", "USA facebook | 200 + FRIENDS | real+fake friendss mix | YEAR 2024-2025"),
+      t("USA faceb00k (100+ FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US)", "USA facebook | 100+ FRIENDS | real+fake friends mix | YEAR 2024-2025"),
+      t("USA Facebook Accounts | 30 Friends | Outlook/Hotmail Verified | Avatar Added | Cookies & 2FA Included | USA IP", "USA Facebook Accounts | 30+ Friends | Cookies & 2FA Included"),
       t("Facebook Accounts | 30-60 Real Friends | Marketplace Enabled | Email Verified & Included | 2FA Included | With Profile Picture | Cookies Included | USA IP Registered"),
     ],
   },
@@ -29,7 +29,7 @@ export const STOREFRONT: StorefrontCategory[] = [
     key: "random-country-fb",
     name: "Random Country Facebook",
     items: [
-      t("High Quality 🔥| Random fb | Has Switch Profile 🔂 || Created Year 2010- 2022"),
+      t("High Quality 🔥| Random fb | Has Switch Profile 🔂 || Created Year 2010- 2022", "High Quality 🔥| Random fb | Has Switch Profile 🔂 |Year 2010- 2022 |"),
       t("Facebook Accounts | 30–100 Real Friends | Outlook/Hotmail Email Verified & Included | Male & Female | 2FA Included | Profile Photo Uploaded | Random IP Registered"),
       t("Facebook Random Accounts | Profile Picture | 2FA Included | Hotmail/Outlook Verified | Random IP"),
     ],

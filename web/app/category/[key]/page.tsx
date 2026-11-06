@@ -108,7 +108,7 @@ export default function CategoryPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
             {items.length === 0 && <p style={{ color: "var(--text-muted)" }}>No accounts match your search.</p>}
-            {items.length > 0 && <CategoryBox name={`${cat.name} (${cat.items.length})`} items={items} onBuy={setBuyItem} />}
+            {items.length > 0 && <CategoryBox categoryKey={cat.key} name={`${cat.name} (${cat.items.length})`} items={items} onBuy={setBuyItem} />}
           </>
         )}
       </main>

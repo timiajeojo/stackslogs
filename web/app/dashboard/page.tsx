@@ -134,7 +134,7 @@ export default function Dashboard() {
 
         {!catalogLoading &&
           visible.map((cat) => (
-            <CategoryBox key={cat.key} name={cat.name} href={`/category/${cat.key}`} items={cat.items} onBuy={setBuyItem} />
+            <CategoryBox key={cat.key} categoryKey={cat.key} name={cat.name} href={`/category/${cat.key}`} items={cat.items} onBuy={setBuyItem} />
           ))}
       </main>
 
