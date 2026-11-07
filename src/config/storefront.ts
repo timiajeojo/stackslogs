@@ -19,8 +19,8 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "USA Facebook",
     items: [
       t("USA FACEBOOK HAVE ALREADY CREATE USA PAGE"),
-      t("USA faceb00k ( 200 + FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US", "USA facebook | 200 + FRIENDS (real+fake friendss mix) | YEAR 2024-2025"),
-      t("USA faceb00k (100+ FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US)", "USA faceb00k | 100+ FRIENDS (real+fake friendss mix) | YEAR 2024-2025"),
+      t("USA faceb00k ( 200 + FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US", "USA Facebook | 200+ Friends (Real + Fake Mix) | Year 2024-2025"),
+      t("USA faceb00k (100+ FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US)", "USA Facebook | 100+ Friends (Real + Fake Mix) | Year 2024-2025"),
       t("USA Facebook Accounts | 30 Friends | Outlook/Hotmail Verified | Avatar Added | Cookies & 2FA Included | USA IP", "USA Facebook | 30 Friends | Cookies & 2FA Included"),
       t("Facebook Accounts | 30-60 Real Friends | Marketplace Enabled | Email Verified & Included | 2FA Included | With Profile Picture | Cookies Included | USA IP Registered", "USA Facebook | 30-60 Real Friends | Marketplace Enabled"),
     ],
@@ -29,7 +29,7 @@ export const STOREFRONT: StorefrontCategory[] = [
     key: "random-country-fb",
     name: "Random Country FB",
     items: [
-      t("High Quality 🔥| Random fb | Has Switch Profile 🔂 || Created Year 2010- 2022", "High Quality 🔥 | Random fb | Has Switch Profile 🔂 | Year 2010- 2022"),
+      t("High Quality 🔥| Random fb | Has Switch Profile 🔂 || Created Year 2010- 2022", "High Quality 🔥 | Random Facebook | Has Switch Profile 🔂 | Year 2010-2022"),
       t("Facebook Accounts | 30–100 Real Friends | Outlook/Hotmail Email Verified & Included | Male & Female | 2FA Included | Profile Photo Uploaded | Random IP Registered", "Random Facebook | 30–100 Real Friends | Mail Included"),
       t("Facebook Random Accounts | Profile Picture | 2FA Included | Hotmail/Outlook Verified | Random IP", "Facebook Random Account | Hotmail/Outlook Verified | Random IP"),
     ],
@@ -79,10 +79,10 @@ export const STOREFRONT: StorefrontCategory[] = [
     key: "tiktok",
     name: "TikTok",
     items: [
-      t("USA TIKTOK- (Random follower 0-100)", "USA TIKTOK | 0-100 followers"),
-      t("TikTok Accounts With 200+ REAL Followers Have Post | Countries: USA, Russia, Canada and more random countries", "TikTok | 200+ REAL Followers"),
+      t("USA TIKTOK- (Random follower 0-100)", "USA TikTok | 0-100 Followers"),
+      t("TikTok Accounts With 200+ REAL Followers Have Post | Countries: USA, Russia, Canada and more random countries", "TikTok | 200+ Real Followers"),
       t("TikTok Account | 500–600 Original Followers | 50–150 Original Likes | Random Country | Fresh Account | Email Verified | 2FA Included", "TikTok | 500–600 Original Followers"),
-      t("TikTok Accounts With 1K REAL Followers Have Post | Countries: USA, Russia, Canada and more random countries", "TikTok | 1000 REAL Followers"),
+      t("TikTok Accounts With 1K REAL Followers Have Post | Countries: USA, Russia, Canada and more random countries", "TikTok | 1000 Real Followers"),
       t("TikTok Accounts | USA | Outlook/Hotmail Verified | Mixed Gender | 2FA included | Partial Profiles | USA IP", "Empty USA TikTok"),
     ],
   },
@@ -90,8 +90,8 @@ export const STOREFRONT: StorefrontCategory[] = [
     key: "instagram",
     name: "Instagram",
     items: [
-      t("INSTAGRAM WITH 100-5OO FOLLOWER", "INSTAGRAM | 100-5OO FOLLOWERS"),
-      t("2024-25 🇺🇸 INSTAGRAM 50-100 FOLLOWERS (1-8POST)", "2024-25 USA🇺🇸 INSTAGRAM 50-100 FOLLOWERS (1-8POST)"),
+      t("INSTAGRAM WITH 100-5OO FOLLOWER", "Instagram | 100-500 Followers"),
+      t("2024-25 🇺🇸 INSTAGRAM 50-100 FOLLOWERS (1-8POST)", "2024-25 USA 🇺🇸 Instagram | 50-100 Followers | 1-8 Posts"),
       t("IG Accounts | Email address is included (outlook.com/hotmail.com) | Verified by SMS | 2FA Enabled | Account is empty (no posts, no profile picture etc.) | Registered from USA IPS.", "Empty USA Instagram"),
       t("IG Accounts | 500+ Followers | 2FA Enabled | Email Included | Best for OnlyFans | Partially Filled Profiles | Australia IP", "Instagram | 500+ Followers"),
       t("IG Accounts | 1000+ Followers | Profile Partially Filled | 2FA Added | Email Included (Hotmail/Outlook) | USA IP", "Instagram | 1000+ Followers"),
@@ -102,7 +102,7 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Twitter",
     items: [
       t("Twitter Accounts | Token Enabled | 2FA Included | Email Not Included | Mixed IP Registered | Fresh 2026", "Empty Twitter Account"),
-      t("Twitter (X) Accounts 2006-2016 | Hotmail Access | 2FA | Auth Token | 0-5 Followers,Account Format User | Password | 2FA | Auth Token | Mail | PassMail | Refresh Token | Client ID | Email Recovery | Cookies", "Twitter 2006-2016 | 0-5 Followers"),
+      t("Twitter (X) Accounts 2006-2016 | Hotmail Access | 2FA | Auth Token | 0-5 Followers,Account Format User | Password | 2FA | Auth Token | Mail | PassMail | Refresh Token | Client ID | Email Recovery | Cookies", "Twitter | 2006-2016 | 0-5 Followers"),
       t("Twitter Accounts | Auto-Reg | 50+ Followers | Email Included | Avatar & Header | Token | 2FA (Optional)", "Twitter | 50+ Followers"),
       t("Twitter Accounts | Aged 2023–2024 | 100–200+ Followers | Outlook/Hotmail Email Included | Male & Female | 2FA Included | Token Included", "Twitter | 2023–2024 | 100–200+ Followers"),
     ],
@@ -112,8 +112,8 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "VPN",
     items: [
       t("PIA VPN 1 MONTH"),
-      t("Express vpn | 1-12 months (one user) don't edit log |", "Express vpn | 1-12 months (one user) don't edit log"),
-      t("HMA vpn | 1-12 months (one user) don't edit log |", "HMA vpn | 1-12 months (one user) don't edit log"),
+      t("Express vpn | 1-12 months (one user) don't edit log |", "Express VPN | 1-12 Months (One User) | Don't Edit Log"),
+      t("HMA vpn | 1-12 months (one user) don't edit log |", "HMA VPN | 1-12 Months (One User) | Don't Edit Log"),
     ],
   },
   {
@@ -123,7 +123,7 @@ export const STOREFRONT: StorefrontCategory[] = [
       t("Hotmail/Outlook Accounts | Email@outlook.com accounts provided | Male or female | POP3, SMTP, IMAP activated", "Hotmail/Outlook"),
       t("Rambler Accounts | Male or female | Accounts might be used for some of the services | POP3, SMTP, IMAP activated", "Rambler"),
       t("Mail.com Accounts| One of the fastest, and safest emails service, very easy to use! To login visit www.mail.com", "Mail.com"),
-      t("GMail Accounts | 2FA Included | SMS Verified | App Password Enabled | Mixed Ip Created", "GMail"),
+      t("GMail Accounts | 2FA Included | SMS Verified | App Password Enabled | Mixed Ip Created", "Gmail"),
     ],
   },
   {
@@ -141,7 +141,7 @@ export const STOREFRONT: StorefrontCategory[] = [
     items: [
       t("Textplus Microsoft | Tap sign in|Tap others|Select sign in with Microsoft Note: (OVPNSPIDER VPN CONNECT JAPAN)", "Textplus Microsoft"),
       t("New Google Voice (GV) Account | Fully Activated | USA Number | Recovary Or 2FA Included | Fresh Account", "New Google Voice"),
-      t("Textnow.com USA Fresh Account | Phone Login", "Textnow | Phone Login"),
+      t("Textnow.com USA Fresh Account | Phone Login", "TextNow | Phone Login"),
     ],
   },
   {
@@ -178,7 +178,7 @@ export const STOREFRONT: StorefrontCategory[] = [
     key: "streaming-sites",
     name: "Streaming Sites",
     items: [
-      t("All in one, contains Netflix, Showmax, prime video etc… once purchased copy and paste the log on your browser and follow instructions", "All in one, contains Netflix, Showmax, prime video etc…"),
+      t("All in one, contains Netflix, Showmax, prime video etc… once purchased copy and paste the log on your browser and follow instructions", "All-in-One | Contains Netflix, Showmax, Prime Video, etc."),
       t("Netflix | device only | don’t edit anything | one device", "Netflix | one device"),
       t("Spotify Premium | Personal Account of your | 1 Month | Works in Any Country | Manual Delivery via Live Chat", "Spotify Premium | 1 Month"),
     ],
@@ -188,11 +188,11 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Others",
     items: [
       t("Quora Accounts | Premium Quality | Email Verified | Full Email Access | Random country-[ America-Europe-Australia-South America-Asia ]", "Quora Accounts | Email Verified"),
-      t("Linkedin.com Accounts | Email included (Outlook/Hotmail.com). Male or female Accounts are", "Linkedin | Email included"),
-      t("Premium Twitch.tv Accounts | Created 2025 - 2026 | Login & Password | Email Not Confirmed | USA Registered IP | Ready to Use", "Twitch | 2025 - 2026"),
-      t("PINTEREST | Account registration date is 2020 to 2023. | Mail included. Mail Access Via { Rambler.ru }", "PINTEREST | 2020 to 2023. | Mail included"),
+      t("Linkedin.com Accounts | Email included (Outlook/Hotmail.com). Male or female Accounts are", "LinkedIn | Email Included"),
+      t("Premium Twitch.tv Accounts | Created 2025 - 2026 | Login & Password | Email Not Confirmed | USA Registered IP | Ready to Use", "Twitch | 2025-2026"),
+      t("PINTEREST | Account registration date is 2020 to 2023. | Mail included. Mail Access Via { Rambler.ru }", "Pinterest | 2020 to 2023 | Mail Included"),
       t("CGPT Accounts | Ready to Use | Verified by email@outlook.com/hotmail.com (included in the set) | The accounts are registered with USA IP.", "CGPT | Email Verified"),
-      t("2023 USA 🇺🇸 DISCORD FULL ACCESS discord:pass:mail:mailpass", "USA 🇺🇸 DISCORD | 2023"),
+      t("2023 USA 🇺🇸 DISCORD FULL ACCESS discord:pass:mail:mailpass", "USA 🇺🇸 Discord | 2023"),
     ],
   },
 ];
