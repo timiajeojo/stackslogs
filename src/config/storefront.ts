@@ -19,19 +19,19 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "USA Facebook",
     items: [
       t("USA FACEBOOK HAVE ALREADY CREATE USA PAGE"),
-      t("USA faceb00k ( 200 + FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US"),
-      t("USA faceb00k (100+ FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US)"),
-      t("USA Facebook Accounts | 30 Friends | Outlook/Hotmail Verified | Avatar Added | Cookies & 2FA Included | USA IP"),
-      t("Facebook Accounts | 30-60 Real Friends | Marketplace Enabled | Email Verified & Included | 2FA Included | With Profile Picture | Cookies Included | USA IP Registered"),
+      t("USA facebook | 200 + FRIENDS (real+fake friendss mix) | YEAR 2024-2025 "),
+      t("USA faceb00k | 100+ FRIENDS (real+fake friendss mix) | YEAR 2024-2025 "),
+      t("USA Facebook | 30 Friends | Cookies & 2FA Included "),
+      t("USA Facebook | 30-60 Real Friends | Marketplace Enabled "),
     ],
   },
   {
     key: "random-country-fb",
     name: "Random Country FB",
     items: [
-      t("High Quality 🔥| Random fb | Has Switch Profile 🔂 || Created Year 2010- 2022"),
-      t("Facebook Accounts | 30–100 Real Friends | Outlook/Hotmail Email Verified & Included | Male & Female | 2FA Included | Profile Photo Uploaded | Random IP Registered"),
-      t("Facebook Random Accounts | Profile Picture | 2FA Included | Hotmail/Outlook Verified | Random IP"),
+      t("High Quality 🔥| Random fb | Has Switch Profile 🔂 | Year 2010- 2022"),
+      t("Random Facebook | 30–100 Real Friends |Mail Included "),
+      t("Facebook Random Account | Hotmail/Outlook Verified | Random IP"),
     ],
   },
   {
@@ -70,41 +70,41 @@ export const STOREFRONT: StorefrontCategory[] = [
     key: "aged-facebook",
     name: "Aged Facebook",
     items: [
-      t("Aged USA Facebook Accounts | 30+ Days | Real Mobile Verified | Marketplace Enabled | 2FA Secured | Hotmail Included"),
+      t("Aged USA Facebook Account | 30+ Days | Marketplace Enabled "),
       t("Aged USA Female Profile Facebook Accounts 8 years Old | 2FA Turned On."),
-      t("Facebook Accounts | 4-5 Months+ Aged | Marketplace + 2FA Enabled | USA SMS & Email Verified | Profile & Cover Photo Partially Filled | Registered from USA IP"),
+      t("Aged USA Facebook Account | 4-5 Months+ Aged | Marketplace + 2FA Enabled "),
     ],
   },
   {
     key: "tiktok",
     name: "TikTok",
     items: [
-      t("USA TIKTOK- (Random follower 0-100)"),
-      t("TikTok Accounts With 200+ REAL Followers Have Post | Countries: USA, Russia, Canada and more random countries"),
-      t("TikTok Account | 500–600 Original Followers | 50–150 Original Likes | Random Country | Fresh Account | Email Verified | 2FA Included"),
-      t("TikTok Accounts With 1K REAL Followers Have Post | Countries: USA, Russia, Canada and more random countries"),
-      t("TikTok Accounts | USA | Outlook/Hotmail Verified | Mixed Gender | 2FA included | Partial Profiles | USA IP"),
+      t("USA TIKTOK | 0-100 followers "),
+      t("TikTok | 200+ REAL Followers"),
+      t("TikTok | 500–600 Original Followers "),
+      t("TikTok | 1000 REAL Followers "),
+      t("Empty USA TikTok "),
     ],
   },
   {
     key: "instagram",
     name: "Instagram",
     items: [
-      t("INSTAGRAM WITH 100-5OO FOLLOWER"),
-      t("2024-25 🇺🇸 INSTAGRAM 50-100 FOLLOWERS (1-8POST)"),
-      t("IG Accounts | Email address is included (outlook.com/hotmail.com) | Verified by SMS | 2FA Enabled | Account is empty (no posts, no profile picture etc.) | Registered from USA IPS."),
-      t("IG Accounts | 500+ Followers | 2FA Enabled | Email Included | Best for OnlyFans | Partially Filled Profiles | Australia IP"),
-      t("IG Accounts | 1000+ Followers | Profile Partially Filled | 2FA Added | Email Included (Hotmail/Outlook) | USA IP"),
+      t("INSTAGRAM | 100-5OO FOLLOWERS"),
+      t("2024-25 USA🇺🇸 INSTAGRAM 50-100 FOLLOWERS (1-8POST)"),
+      t("Empty USA Instagram"),
+      t("Instagram | 500+ Followers "),
+      t("Instagram | 1000+ Followers "),
     ],
   },
   {
     key: "twitter",
     name: "Twitter",
     items: [
-      t("Twitter Accounts | Token Enabled | 2FA Included | Email Not Included | Mixed IP Registered | Fresh 2026"),
-      t("Twitter (X) Accounts 2006-2016 | Hotmail Access | 2FA | Auth Token | 0-5 Followers,Account Format User | Password | 2FA | Auth Token | Mail | PassMail | Refresh Token | Client ID | Email Recovery | Cookies"),
-      t("Twitter Accounts | Auto-Reg | 50+ Followers | Email Included | Avatar & Header | Token | 2FA (Optional)"),
-      t("Twitter Accounts | Aged 2023–2024 | 100–200+ Followers | Outlook/Hotmail Email Included | Male & Female | 2FA Included | Token Included"),
+      t("Empty Twitter Account "),
+      t("Twitter 2006-2016 | 0-5 Followers "),
+      t("Twitter  | 50+ Followers "),
+      t("Twitter  | 2023–2024 | 100–200+ Followers "),
     ],
   },
   {
@@ -120,10 +120,10 @@ export const STOREFRONT: StorefrontCategory[] = [
     key: "email",
     name: "Email",
     items: [
-      t("Hotmail/Outlook Accounts | Email@outlook.com accounts provided | Male or female | POP3, SMTP, IMAP activated"),
-      t("Rambler Accounts | Male or female | Accounts might be used for some of the services | POP3, SMTP, IMAP activated"),
-      t("Mail.com Accounts| One of the fastest, and safest emails service, very easy to use! To login visit www.mail.com"),
-      t("GMail Accounts | 2FA Included | SMS Verified | App Password Enabled | Mixed Ip Created"),
+      t("Hotmail/Outlook "),
+      t("Rambler  "),
+      t("Mail.com "),
+      t("GMail "),
     ],
   },
   {
@@ -131,26 +131,26 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Snapchat",
     items: [
       t("UK 🇬🇧 SNAPCHAT"),
-      t("Snapchat.com Accounts | Verified by gmx mail (email included in the set). New Accounts, Sex can be both male and female. The accounts are registered with USA IPs.", "USA Snapchat"),
-      t("Snapchat Accounts | Fresh/New | 2FA Enabled"),
+      t("USA Snapchat| Mail Included ")
+      t("Snapchat | Fresh/New "),
     ],
   },
   {
     key: "texting-apps",
     name: "Texting Apps",
     items: [
-      t("Textplus Microsoft | Tap sign in|Tap others|Select sign in with Microsoft Note: (OVPNSPIDER VPN CONNECT JAPAN)", "Textplus Microsoft"),
-      t("New Google Voice (GV) Account | Fully Activated | USA Number | Recovary Or 2FA Included | Fresh Account", "New Google Voice"),
-      t("Textnow.com USA Fresh Account | Phone Login"),
+      t("Textplus Microsoft ")
+      t("New Google Voice ")
+      t("Textnow | Phone Login"),
     ],
   },
   {
     key: "threads",
     name: "Threads",
     items: [
-      t("Threads Accounts | Email included (outlook.com/hotmail.com) | Verified by SMS | 2FA Enabled | Account is empty | Registered from USA IPS.", "USA Threads Account"),
-      t("GERMANY IP 1-MONTH ACCOUNT (GERMAN NAME, PHOTO & 2FA KEY)", "Germany Threads Account"),
-      t("Threads Accounts | Email included (outlook.com/hotmail.com) | Verified by SMS | 2FA Enabled | Profile is Partially Filled | Registered from MIX IPS.", "Random Threads Account"),
+      t("USA Threads ")
+      t("Germany Threads "),
+      t("Random Threads "),
     ],
   },
   {
@@ -158,9 +158,9 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Dating Sites",
     items: [
       t("TAGGED"),
-      t("Old Aged Grindr Profiles | Secure Login | Email Verified | Ready Access"),
-      t("Topface | Accounts | Gender: Male | dating site Topface.com"),
-      t("Topface | Accounts | Gender: Female | dating site Topface.com"),
+      t("Aged Grindr "),
+      t("Topface | Male "),
+      t("Topface | Female "),
     ],
   },
   {
@@ -169,30 +169,30 @@ export const STOREFRONT: StorefrontCategory[] = [
     items: [
       t("REDDIT MONTHS OLD"),
       t("🇺🇸 USA Empty Reddit | username & password, Required use VPN"),
-      t("Reddit Accounts | Registered 2024 | Aged Accounts | Email Not Verified | Registered from USA IPs"),
-      t("Reddit Accounts | Registered 2025 | Aged Accounts | Email Not Included | Registered from EU IPs"),
-      t("Reddit Accounts | Registered 2022 | Aged Accounts | Email Not Verified | Registered from EU IPs"),
+      t("Reddit | 2024 | Email Not Verified "),
+      t("Reddit | 2025 | Email Not Included"),
+      t("Reddit | 2022 | Email Not Verified"),
     ],
   },
   {
     key: "streaming-sites",
     name: "Streaming Sites",
     items: [
-      t("All in one, contains Netflix, Showmax, prime video etc… once purchased copy and paste the log on your browser and follow instructions"),
-      t("Netflix | device only | don’t edit anything | one device"),
-      t("Spotify Premium | Personal Account of your | 1 Month | Works in Any Country | Manual Delivery via Live Chat"),
+      t("All in one, contains Netflix, Showmax, prime video etc… "),
+      t("Netflix | one device"),
+      t("Spotify Premium | 1 Month "),
     ],
   },
   {
     key: "others",
     name: "Others",
     items: [
-      t("Quora Accounts | Premium Quality | Email Verified | Full Email Access | Random country-[ America-Europe-Australia-South America-Asia ]"),
-      t("Linkedin.com Accounts | Email included (Outlook/Hotmail.com). Male or female Accounts are"),
-      t("Premium Twitch.tv Accounts | Created 2025 - 2026 | Login & Password | Email Not Confirmed | USA Registered IP | Ready to Use"),
-      t("PINTEREST | Account registration date is 2020 to 2023. | Mail included. Mail Access Via { Rambler.ru }"),
-      t("CGPT Accounts | Ready to Use | Verified by email@outlook.com/hotmail.com (included in the set) | The accounts are registered with USA IP."),
-      t("2023 USA 🇺🇸 DISCORD FULL ACCESS discord:pass:mail:mailpass"),
+      t("Quora Accounts | Email Verified"),
+      t("Linkedin | Email included"),
+      t("Twitch | 2025 - 2026"),
+      t("PINTEREST | 2020 to 2023. | Mail included"),
+      t("CGPT | Email Verified"),
+      t("USA 🇺🇸 DISCORD | 2023 "),
     ],
   },
 ];

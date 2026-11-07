@@ -73,6 +73,7 @@ color-scheme:dark;
 body{
   background:var(--bg);color:var(--text);
   font-family:var(--font-josefin),sans-serif;-webkit-font-smoothing:antialiased;
+  font-weight: 500;
   overflow-x:hidden;
 }
 h1,h2,h3,.display{font-family:var(--font-josefin),sans-serif;letter-spacing:-0.01em;}
