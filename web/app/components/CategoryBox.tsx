@@ -152,7 +152,23 @@ export default function CategoryBox({
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
               <span style={{ fontWeight: 700, fontSize: 15 }}>₦{naira(item.price)}</span>
               <button className="cart-btn" disabled={item.available_stock === 0} onClick={() => onBuy(item)}>
-                🛒
+                <svg
+                  viewBox="0 0 24 24"
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  style={{ display: "block" }}
+                >
+                  <circle cx="9" cy="20" r="1.5" />
+                  <circle cx="18" cy="20" r="1.5" />
+                  <path d="M2 3h3l2.7 12.4a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L21 7H6" />
+                </svg>
+                <span style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>Buy</span>
               </button>
             </div>
           </div>
