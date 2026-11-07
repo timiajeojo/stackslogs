@@ -19,7 +19,8 @@ function useFontAwesome() {
 }
 
 // bg = tile color, cls = Font Awesome class, fg = icon color (white unless the tile is light)
-type Icon = { bg: string; cls: string; fg?: string };
+// img = a logo file in /public (used instead of the Font Awesome icon); pad = space around a logo that isn't full-bleed
+type Icon = { bg: string; cls: string; fg?: string; img?: string; pad?: number };
 
 const ICONS: Record<string, Icon> = {
   facebook: { bg: "#1877f2", cls: "fa-brands fa-facebook-f" },
@@ -37,6 +38,11 @@ const ICONS: Record<string, Icon> = {
   chatgpt: { bg: "#10a37f", cls: "fa-solid fa-robot" },
   email: { bg: "#f59e0b", cls: "fa-solid fa-envelope" },
   vpn: { bg: "#16a34a", cls: "fa-solid fa-shield-halved" },
+  expressvpn: { bg: "#da3940", cls: "", img: "/icons/vpn/expressvpn.png" },
+  surfshark: { bg: "#ffffff", cls: "", img: "/icons/vpn/surfshark.png" },
+  pia: { bg: "#ffffff", cls: "", img: "/icons/vpn/pia.jpg", pad: 4 },
+  nordvpn: { bg: "#4687ff", cls: "", img: "/icons/vpn/nordvpn.png" },
+  hma: { bg: "#0057a8", cls: "", img: "/icons/vpn/hma.png" },
   texting: { bg: "#0ea5e9", cls: "fa-solid fa-comment" },
   threads: { bg: "#111111", cls: "fa-brands fa-threads" },
   dating: { bg: "#f43f5e", cls: "fa-solid fa-heart" },
@@ -75,8 +81,22 @@ const KEYWORDS: [string, string][] = [
   ["netflix", "streaming"],
 ];
 
+// VPN accounts match on the account title; anything unmatched keeps the generic shield.
+const VPN_KEYWORDS: [RegExp, string][] = [
+  [/express/, "expressvpn"],
+  [/surfshark/, "surfshark"],
+  [/\bpia\b|private\s*internet/, "pia"],
+  [/nord/, "nordvpn"],
+  [/\bhma\b|hide\s*my\s*ass|hidemyass/, "hma"],
+];
+
 function iconFor(categoryKey: string | undefined, title: string): Icon {
   const k = categoryKey || "";
+  if (k === "vpn") {
+    const t = title.toLowerCase();
+    const hit = VPN_KEYWORDS.find(([re]) => re.test(t));
+    if (hit) return ICONS[hit[1]];
+  }
   if (k === "others" || k === "streaming-sites") {
     const t = title.toLowerCase();
     const hit = KEYWORDS.find(([word]) => t.includes(word));
@@ -136,10 +156,23 @@ export default function CategoryBox({
             <div
               style={{
                 width: 38, height: 38, borderRadius: 10, flexShrink: 0, background: icon.bg,
-                display: "flex", alignItems: "center", justifyContent: "center",
+                display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
               }}
             >
-              <i className={icon.cls} style={{ color: icon.fg || "#ffffff", fontSize: 18 }} aria-hidden="true" />
+              {icon.img ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={icon.img}
+                  alt=""
+                  aria-hidden="true"
+                  style={{
+                    width: "100%", height: "100%", display: "block",
+                    objectFit: icon.pad ? "contain" : "cover", padding: icon.pad || 0,
+                  }}
+                />
+              ) : (
+                <i className={icon.cls} style={{ color: icon.fg || "#ffffff", fontSize: 18 }} aria-hidden="true" />
+              )}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, lineHeight: 1.4, wordBreak: "break-word" }}>{item.title}</div>
