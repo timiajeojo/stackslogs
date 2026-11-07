@@ -22,7 +22,7 @@ export const STOREFRONT: StorefrontCategory[] = [
       t("USA faceb00k ( 200 + FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US", "USA Facebook | 200+ Friends (Real + Fake Mix) | Year 2024-2025"),
       t("USA faceb00k (100+ FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US)", "USA Facebook | 100+ Friends (Real + Fake Mix) | Year 2024-2025"),
       t("USA Facebook Accounts | 30 Friends | Outlook/Hotmail Verified | Avatar Added | Cookies & 2FA Included | USA IP", "USA Facebook | 30 Friends | Cookies & 2FA Included"),
-      t("Facebook Accounts | 30-60 Real Friends | Marketplace Enabled | Email Verified & Included | 2FA Included | With Profile Picture | Cookies Included | USA IP Registered", "USA Facebook | 30-60 Real Friends | Marketplace Enabled"),
+      t("Facebook Accounts with page | Page activeted | Base64 Cookies Included | SMS & Email Verified | Empty Profile | Gender Mix | Mixed IP Registered", "Mixed Country FB With Already Created Page"),
     ],
   },
   {
