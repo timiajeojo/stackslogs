@@ -19,7 +19,7 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "USA Facebook",
     items: [
       t("USA FACEBOOK HAVE ALREADY CREATE USA PAGE"),
-      t("USA faceb00k ( 200 + FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US", "USA Facebook | 200+ Friends (Real + Fake Mix) | Year 2024-2025"),
+      t("Usa 🇺🇸 Country Facebook | Opened 2FA with marketplace YEAR 2025 login with USA IP (0-10) Friends", "USA Facebook(0-10 friends) | 2025-2026 | marketplace"),
       t("USA faceb00k (100+ FRIENDS)(real+fake friendss mix) YEAR 2024-2025 (have many friends from other countries)(Accounts have US profiles but most of the locations are not in the US)", "USA Facebook | 100+ Friends (Real + Fake Mix) | Year 2024-2025"),
       t("USA Facebook Accounts | 30 Friends | Outlook/Hotmail Verified | Avatar Added | Cookies & 2FA Included | USA IP", "USA Facebook | 30 Friends | Cookies & 2FA Included"),
       t("Facebook Accounts with page | Page activeted | Base64 Cookies Included | SMS & Email Verified | Empty Profile | Gender Mix | Mixed IP Registered", "Mixed Country FB With Already Created Page"),
@@ -30,8 +30,8 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Random Country FB",
     items: [
       t("High Quality 🔥| Random fb | Has Switch Profile 🔂 || Created Year 2010- 2022", "High Quality 🔥 | Random Facebook | Has Switch Profile 🔂 | Year 2010-2022"),
-      t("Facebook Accounts | 30–100 Real Friends | Outlook/Hotmail Email Verified & Included | Male & Female | 2FA Included | Profile Photo Uploaded | Random IP Registered", "Random Facebook | 30–100 Real Friends | Mail Included"),
-      t("Facebook Random Accounts | Profile Picture | 2FA Included | Hotmail/Outlook Verified | Random IP", "Facebook Random Account | Hotmail/Outlook Verified | Random IP"),
+      t("Facebook Accounts | 30-100 Friends | Outlook/Hotmail Verified & Included (E-mail Working) | 2FA & Cookies Included | Partial Profile | Male & Female | Random IP Registered", "Random Facebook | 30–100 Real Friends | Mail Included"),
+      t("Facebook Account with Page | Profile + Cover Photo Added | SMS & Email Verified | Email Included | 2FA Included | Random IP Registered", "Random Country FB With Page | Email Included"),
     ],
   },
   {
@@ -71,8 +71,8 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Aged Facebook",
     items: [
       t("Aged USA Facebook Accounts | 30+ Days | Real Mobile Verified | Marketplace Enabled | 2FA Secured | Hotmail Included", "Aged USA Facebook Account | 30+ Days | Marketplace Enabled"),
-      t("Aged USA Female Profile Facebook Accounts 8 years Old | 2FA Turned On."),
-      t("Facebook Accounts | 4-5 Months+ Aged | Marketplace + 2FA Enabled | USA SMS & Email Verified | Profile & Cover Photo Partially Filled | Registered from USA IP", "Aged USA Facebook Account | 4-5 Months+ Aged | Marketplace + 2FA Enabled"),
+      t("FB Accounts | Aged 2021-2023 | Email Not Included | Male or Female | Profile & Cover Photo | 2FA Enabled | Registered from Mixed IPs", "Mixed Country Aged Facebook"),
+      t("Facebook Accounts | 3-6 Month Aged | 50–200 Real Friends | Outlook/Hotmail Email Verified & Included | Male & Female | 2FA Included | Profile Photo Uploaded | Random IP Registered", "Aged USA Facebook Account | 3-6 Months+ Old | 50-200 Friends | Email Verified"),
     ],
   },
   {
@@ -80,19 +80,19 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "TikTok",
     items: [
       t("USA TIKTOK- (Random follower 0-100)", "USA TikTok | 0-100 Followers"),
-      t("TikTok Accounts With 200+ REAL Followers Have Post | Countries: USA, Russia, Canada and more random countries", "TikTok | 200+ Real Followers"),
+      t("TikTok Accounts | 200–300 Followers | Special Offer Price | Random Country | Mixed IP | Email Verified | 2FA Included", "TikTok | 300+ Real Followers"),
       t("TikTok Account | 500–600 Original Followers | 50–150 Original Likes | Random Country | Fresh Account | Email Verified | 2FA Included", "TikTok | 500–600 Original Followers"),
-      t("TikTok Accounts With 1K REAL Followers Have Post | Countries: USA, Russia, Canada and more random countries", "TikTok | 1000 Real Followers"),
-      t("TikTok Accounts | USA | Outlook/Hotmail Verified | Mixed Gender | 2FA included | Partial Profiles | USA IP", "Empty USA TikTok"),
+      t("TikTok Account | 1000+ Original Followers | Original Likes | Random Country | Fresh Account | Email Verified | 2FA Included", "TikTok | 1000 Real Followers"),
+      t("TikTok Accounts | Verified by email, email is included in package. Partially filled profile. The accounts are registered different ip.", "Empty TikTok"),
     ],
   },
   {
     key: "instagram",
     name: "Instagram",
     items: [
-      t("INSTAGRAM WITH 100-5OO FOLLOWER", "Instagram | 100-500 Followers"),
-      t("2024-25 🇺🇸 INSTAGRAM 50-100 FOLLOWERS (1-8POST)", "2024-25 USA 🇺🇸 Instagram | 50-100 Followers | 1-8 Posts"),
-      t("IG Accounts | Email address is included (outlook.com/hotmail.com) | Verified by SMS | 2FA Enabled | Account is empty (no posts, no profile picture etc.) | Registered from USA IPS.", "Empty USA Instagram"),
+      t("INSTAGRAM WITH 100-5OO FOLLOWER", "Instagram | 400-500 Followers"),
+      t("2024-25 🇺🇸 INSTAGRAM 50-100 FOLLOWERS (1-8POST)", "2024-25 USA 🇺🇸 Instagram | 50-100 Followers"),
+      t("Fresh Instagram Accounts | Blank Profile | 2FA Included", "Empty Instagram"),
       t("IG Accounts | 500+ Followers | 2FA Enabled | Email Included | Best for OnlyFans | Partially Filled Profiles | Australia IP", "Instagram | 500+ Followers"),
       t("IG Accounts | 1000+ Followers | Profile Partially Filled | 2FA Added | Email Included (Hotmail/Outlook) | USA IP", "Instagram | 1000+ Followers"),
     ],
@@ -101,19 +101,21 @@ export const STOREFRONT: StorefrontCategory[] = [
     key: "twitter",
     name: "Twitter",
     items: [
-      t("Twitter Accounts | Token Enabled | 2FA Included | Email Not Included | Mixed IP Registered | Fresh 2026", "Empty Twitter Account"),
-      t("Twitter (X) Accounts 2006-2016 | Hotmail Access | 2FA | Auth Token | 0-5 Followers,Account Format User | Password | 2FA | Auth Token | Mail | PassMail | Refresh Token | Client ID | Email Recovery | Cookies", "Twitter | 2006-2016 | 0-5 Followers"),
-      t("Twitter Accounts | Auto-Reg | 50+ Followers | Email Included | Avatar & Header | Token | 2FA (Optional)", "Twitter | 50+ Followers"),
-      t("Twitter Accounts | Aged 2023–2024 | 100–200+ Followers | Outlook/Hotmail Email Included | Male & Female | 2FA Included | Token Included", "Twitter | 2023–2024 | 100–200+ Followers"),
+      t("Twitter Accounts | Email Verified Outlook Email (Working) in the set | Empty Profile | 2FA + (Base64) Cookies Included | MIX IP", "Empty Twitter"),
+      t("Twitter Accounts | Verified by SMS | Email address is included in the set | An avatar is added to a profile | 2FA in the set | Auth Token Included | Accounts are registered in IP addresses of USA.", "USA Twitter"),
+      t("Twitter Accounts | The accounts were registered on 03.2023. Verified by email@Hotmail\Outlook, email included (may require confirmation by SMS). Male or female. An avatar is added to a profile. Accounts are registered in IP addresses of different countries.", "Random Twitter | Year 2023"),
+      t("Twitter Accounts | Verified by e-mai@outlook.com/hotmail.com, email address is included in the set. Female. An avatar is added to a profile. Partially filled profiles. 2FA in the set. Accounts are registered in IP addresses of USA.", "Female USA Twitter"),
     ],
   },
   {
     key: "vpn",
     name: "VPN",
     items: [
-      t("PIA VPN 1 MONTH"),
+      t("PIA VPN 2 WEEKS +", "PIA VPN 2 WEEKS+"),
       t("Express vpn | 1-12 months (one user) don't edit log |", "Express VPN | 1-12 Months (One User) | Don't Edit Log"),
       t("HMA vpn | 1-12 months (one user) don't edit log |", "HMA VPN | 1-12 Months (One User) | Don't Edit Log"),
+      t("SURFSHARK VPN 1 MONTH", "SURFSHARK VPN 1 MONTH"),
+      t("NORD vpn | 1-12 months (one user) don't edit log |", "NORD vpn | 1-12 months (one user) don't edit log"),
     ],
   },
   {
@@ -149,8 +151,8 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Threads",
     items: [
       t("Threads Accounts | Email included (outlook.com/hotmail.com) | Verified by SMS | 2FA Enabled | Account is empty | Registered from USA IPS.", "USA Threads"),
-      t("GERMANY IP 1-MONTH ACCOUNT (GERMAN NAME, PHOTO & 2FA KEY)", "Germany Threads"),
-      t("Threads Accounts | Email included (outlook.com/hotmail.com) | Verified by SMS | 2FA Enabled | Profile is Partially Filled | Registered from MIX IPS.", "Random Threads"),
+      t("1+3 month old Instagram /threads/account with 2fa key 13-month-old-instagram-threadsaccount-with-2fa-key-verified-profile-picture-added profile picture added", "13+ Months old Threads"),
+      t("Threads Accounts | High Quality | Full email access | 2FA | Avatar added | MIX IP", "Random Threads"),
     ],
   },
   {
@@ -158,20 +160,19 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Dating Sites",
     items: [
       t("TAGGED"),
-      t("Old Aged Grindr Profiles | Secure Login | Email Verified | Ready Access", "Aged Grindr"),
+      t("Direct Login Grindr Accounts | USA & UK Phone Verified | No Email Required | Instant Access", "USA/UK Grindr"),
       t("Topface | Accounts | Gender: Male | dating site Topface.com", "Topface | Male"),
       t("Topface | Accounts | Gender: Female | dating site Topface.com", "Topface | Female"),
+      t("MEET ME {MALE/FEMALE}", "MEET ME(Male/Female"),
     ],
   },
   {
     key: "reddit",
     name: "Reddit",
     items: [
+      t("Reddit Accounts | Male & Female | Email Verified & Included | 2FA Included | Registered from Canada IPs", "Canadian Empty Reddit"),
+      t("🇺🇸 USA Empty Reddit | username & password, Required use VPN", "USA 🇺🇸 Empty Reddit"),
       t("REDDIT MONTHS OLD"),
-      t("🇺🇸 USA Empty Reddit | username & password, Required use VPN"),
-      t("Reddit Accounts | Registered 2024 | Aged Accounts | Email Not Verified | Registered from USA IPs", "Reddit | 2024 | Email Not Verified"),
-      t("Reddit Accounts | Registered 2025 | Aged Accounts | Email Not Included | Registered from EU IPs", "Reddit | 2025 | Email Not Included"),
-      t("Reddit Accounts | Registered 2022 | Aged Accounts | Email Not Verified | Registered from EU IPs", "Reddit | 2022 | Email Not Verified"),
     ],
   },
   {
