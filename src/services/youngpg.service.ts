@@ -61,13 +61,14 @@ export function ngnToKobo(value: string | number): number {
 
 // ---- Pricing ----
 
-// Your selling price = supplier cost x PRICE_MARKUP (1.7 = 170% of cost, i.e. +70%).
-// Override with PRICE_MARKUP in the backend environment if you want to change it.
-const MARKUP = Number(process.env.PRICE_MARKUP) || 1.7;
+// Your selling price = supplier cost + a flat margin of PRICE_MARGIN_NGN naira per account.
+// Defaults to 1000. Override with PRICE_MARGIN_NGN in the backend environment (in naira).
+const envMargin = process.env.PRICE_MARGIN_NGN;
+const MARGIN_KOBO = Math.round((envMargin && Number.isFinite(Number(envMargin)) ? Number(envMargin) : 1000) * 100);
 
 /** Supplier cost in naira (e.g. "5000.00") -> your selling price in kobo. */
 export function sellPriceKobo(costNgn: string | number): number {
-  return Math.round(ngnToKobo(costNgn) * MARKUP);
+  return ngnToKobo(costNgn) + MARGIN_KOBO;
 }
 
 /**
