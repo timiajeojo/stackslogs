@@ -1462,3 +1462,101 @@ select:focus{border-color:var(--blue);}
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ===== Buy popup + My orders: append to web/app/globals.css ===== */
+
+.cart-btn svg { display: block; }
+
+/* Buy popup */
+.buy-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding: 12px; background: rgba(5, 8, 18, 0.72); backdrop-filter: blur(4px);
+}
+@media (min-width: 640px) { .buy-overlay { align-items: center; } }
+
+.buy-sheet {
+  width: 100%; max-width: 440px; max-height: 88vh; overflow-y: auto;
+  padding: 20px; color: #fff;
+  background: linear-gradient(180deg, #111b3d 0%, #0c1430 100%);
+  border: 1px solid rgba(110, 140, 255, 0.18); border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+.buy-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.buy-heading { margin: 0; font-size: 20px; font-family: "Space Grotesk", sans-serif; }
+.buy-heading.center, .buy-sub.center { text-align: center; }
+.buy-x { background: none; border: 0; color: var(--text-muted, #8b96b8); font-size: 18px; cursor: pointer; padding: 4px 8px; }
+.buy-title { margin: 0 0 16px; font-size: 14px; line-height: 1.45; color: #dfe6ff; word-break: break-word; }
+.buy-label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-muted, #8b96b8); }
+
+.qty-row { display: flex; gap: 8px; margin-bottom: 16px; }
+.qty-btn {
+  width: 44px; flex: none; font-size: 20px; color: #fff; cursor: pointer;
+  background: #121c3f; border: 1px solid rgba(110, 140, 255, 0.22); border-radius: 10px;
+}
+.qty-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.buy-input {
+  flex: 1; min-width: 0; text-align: center; font-size: 16px; color: #fff;
+  background: #0d1633; border: 1px solid rgba(110, 140, 255, 0.22); border-radius: 10px; padding: 10px;
+}
+.buy-input:focus { outline: none; border-color: #3d8fff; }
+
+.buy-lines > div { display: flex; justify-content: space-between; font-size: 14px; padding: 4px 0; }
+.buy-lines .total { font-weight: 700; font-size: 16px; padding-top: 8px; margin-top: 6px; border-top: 1px solid rgba(110, 140, 255, 0.14); }
+.buy-lines .muted { color: var(--text-muted, #8b96b8); font-size: 13px; }
+
+.buy-msg { font-size: 13px; margin: 12px 0 0; line-height: 1.45; }
+.buy-msg.error { color: #ff7b7b; }
+.buy-msg.info { color: #9fc4ff; }
+.buy-msg a { color: #5aa2ff; text-decoration: underline; }
+
+.buy-actions { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+
+.buy-success-icon {
+  width: 52px; height: 52px; margin: 4px auto 10px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; font-size: 26px;
+  color: #3ddc97; background: rgba(61, 220, 151, 0.12); border: 1px solid rgba(61, 220, 151, 0.4);
+}
+.buy-sub { margin: 4px 0 14px; font-size: 13px; color: var(--text-muted, #8b96b8); }
+.buy-logs { display: grid; gap: 8px; }
+.buy-log {
+  padding: 10px 12px; font-family: "IBM Plex Mono", monospace; font-size: 12px; line-height: 1.5;
+  color: #dfe6ff; background: #0a1128; border: 1px solid rgba(110, 140, 255, 0.16);
+  border-radius: 10px; word-break: break-all; user-select: all;
+}
+
+/* My orders */
+.order-card {
+  margin-bottom: 12px; overflow: hidden;
+  background: linear-gradient(180deg, #111b3d 0%, #0e1634 100%);
+  border: 1px solid rgba(110, 140, 255, 0.16); border-radius: 14px;
+}
+.order-top {
+  width: 100%; display: flex; gap: 12px; align-items: flex-start; justify-content: space-between;
+  padding: 14px 16px; text-align: left; color: #fff; background: none; border: 0; cursor: pointer;
+}
+.order-main { min-width: 0; }
+.order-title { font-size: 14px; font-weight: 600; line-height: 1.4; word-break: break-word; }
+.order-meta { margin-top: 4px; font-size: 12px; color: var(--text-muted, #8b96b8); }
+.order-side { flex: none; text-align: right; }
+.order-total { font-family: "IBM Plex Mono", monospace; font-size: 14px; font-weight: 600; }
+.order-status { display: inline-block; margin-top: 6px; padding: 2px 9px; font-size: 11px; border-radius: 999px; }
+.order-status.completed { color: #3ddc97; background: rgba(61, 220, 151, 0.12); }
+.order-status.processing, .order-status.needs_review { color: #ffc857; background: rgba(255, 200, 87, 0.12); }
+.order-status.failed { color: #ff7b7b; background: rgba(255, 123, 123, 0.12); }
+
+.order-body { padding: 0 16px 16px; border-top: 1px solid rgba(110, 140, 255, 0.12); padding-top: 14px; }
+.order-note { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-muted, #8b96b8); }
+.order-note.error { color: #ff7b7b; }
+.order-logs { display: grid; gap: 8px; margin-bottom: 12px; }
+.order-log {
+  display: flex; gap: 10px; align-items: center; justify-content: space-between;
+  padding: 10px 12px; background: #0a1128; border: 1px solid rgba(110, 140, 255, 0.16); border-radius: 10px;
+}
+.order-log code { min-width: 0; font-family: "IBM Plex Mono", monospace; font-size: 12px; line-height: 1.5; color: #dfe6ff; word-break: break-all; }
+.log-copy {
+  flex: none; padding: 6px 10px; font-size: 12px; color: #fff; cursor: pointer;
+  background: #1a2a5e; border: 1px solid rgba(110, 140, 255, 0.3); border-radius: 8px;
+}
+.order-empty { text-align: center; padding: 30px 10px; color: var(--text-muted, #8b96b8); }
+.order-empty p { margin: 0 0 14px; }
