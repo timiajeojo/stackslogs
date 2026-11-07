@@ -23,7 +23,7 @@ export const STOREFRONT: StorefrontCategory[] = [
       t("USA faceb00k | 100+ FRIENDS (real+fake friendss mix) | YEAR 2024-2025 "),
       t("USA Facebook | 30 Friends | Cookies & 2FA Included "),
       t("USA Facebook | 30-60 Real Friends | Marketplace Enabled "),
-    ],
+    ], 
   },
   {
     key: "random-country-fb",
@@ -81,9 +81,9 @@ export const STOREFRONT: StorefrontCategory[] = [
     items: [
       t("USA TIKTOK | 0-100 followers "),
       t("TikTok | 200+ REAL Followers"),
-      t("TikTok | 500–600 Original Followers "),
-      t("TikTok | 1000 REAL Followers "),
-      t("Empty USA TikTok "),
+      t("TikTok | 500–600 Original Followers"),
+      t("TikTok | 1000 REAL Followers"),
+      t("Empty USA TikTok"),
     ],
   },
   {
@@ -93,18 +93,18 @@ export const STOREFRONT: StorefrontCategory[] = [
       t("INSTAGRAM | 100-5OO FOLLOWERS"),
       t("2024-25 USA🇺🇸 INSTAGRAM 50-100 FOLLOWERS (1-8POST)"),
       t("Empty USA Instagram"),
-      t("Instagram | 500+ Followers "),
-      t("Instagram | 1000+ Followers "),
+      t("Instagram | 500+ Followers"),
+      t("Instagram | 1000+ Followers"),
     ],
   },
   {
     key: "twitter",
     name: "Twitter",
     items: [
-      t("Empty Twitter Account "),
-      t("Twitter 2006-2016 | 0-5 Followers "),
-      t("Twitter  | 50+ Followers "),
-      t("Twitter  | 2023–2024 | 100–200+ Followers "),
+      t("Empty Twitter Account"),
+      t("Twitter 2006-2016 | 0-5 Followers"),
+      t("Twitter  | 50+ Followers"),
+      t("Twitter  | 2023–2024 | 100–200+ Followers"),
     ],
   },
   {
@@ -112,8 +112,8 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "VPN",
     items: [
       t("PIA VPN 1 MONTH"),
-      t("Express vpn | 1-12 months (one user) don't edit log |"),
-      t("HMA vpn | 1-12 months (one user) don't edit log |"),
+      t("Express vpn | 1-12 months (one user) don't edit log"),
+      t("HMA vpn | 1-12 months (one user) don't edit log"),
     ],
   },
   {
@@ -121,9 +121,9 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Email",
     items: [
       t("Hotmail/Outlook "),
-      t("Rambler  "),
-      t("Mail.com "),
-      t("GMail "),
+      t("Rambler"),
+      t("Mail.com"),
+      t("GMail"),
     ],
   },
   {
@@ -132,15 +132,15 @@ export const STOREFRONT: StorefrontCategory[] = [
     items: [
       t("UK 🇬🇧 SNAPCHAT"),
       t("USA Snapchat| Mail Included ")
-      t("Snapchat | Fresh/New "),
+      t("Snapchat | Fresh/New"),
     ],
   },
   {
     key: "texting-apps",
     name: "Texting Apps",
     items: [
-      t("Textplus Microsoft ")
-      t("New Google Voice ")
+      t("Textplus Microsoft")
+      t("New Google Voice")
       t("Textnow | Phone Login"),
     ],
   },
@@ -148,9 +148,9 @@ export const STOREFRONT: StorefrontCategory[] = [
     key: "threads",
     name: "Threads",
     items: [
-      t("USA Threads ")
-      t("Germany Threads "),
-      t("Random Threads "),
+      t("USA Threads")
+      t("Germany Threads"),
+      t("Random Threads"),
     ],
   },
   {
@@ -158,9 +158,9 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Dating Sites",
     items: [
       t("TAGGED"),
-      t("Aged Grindr "),
-      t("Topface | Male "),
-      t("Topface | Female "),
+      t("Aged Grindr"),
+      t("Topface | Male"),
+      t("Topface | Female"),
     ],
   },
   {
@@ -169,7 +169,7 @@ export const STOREFRONT: StorefrontCategory[] = [
     items: [
       t("REDDIT MONTHS OLD"),
       t("🇺🇸 USA Empty Reddit | username & password, Required use VPN"),
-      t("Reddit | 2024 | Email Not Verified "),
+      t("Reddit | 2024 | Email Not Verified"),
       t("Reddit | 2025 | Email Not Included"),
       t("Reddit | 2022 | Email Not Verified"),
     ],
@@ -178,9 +178,9 @@ export const STOREFRONT: StorefrontCategory[] = [
     key: "streaming-sites",
     name: "Streaming Sites",
     items: [
-      t("All in one, contains Netflix, Showmax, prime video etc… "),
+      t("All in one, contains Netflix, Showmax, prime video etc…"),
       t("Netflix | one device"),
-      t("Spotify Premium | 1 Month "),
+      t("Spotify Premium | 1 Month"),
     ],
   },
   {
@@ -192,7 +192,7 @@ export const STOREFRONT: StorefrontCategory[] = [
       t("Twitch | 2025 - 2026"),
       t("PINTEREST | 2020 to 2023. | Mail included"),
       t("CGPT | Email Verified"),
-      t("USA 🇺🇸 DISCORD | 2023 "),
+      t("USA 🇺🇸 DISCORD | 2023"),
     ],
   },
 ];
