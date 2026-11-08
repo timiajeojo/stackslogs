@@ -36,24 +36,28 @@ const ICONS: Record<string, Icon> = {
   spotify: { bg: "#1db954", cls: "fa-brands fa-spotify" },
   quora: { bg: "#b92b27", cls: "fa-brands fa-quora" },
   chatgpt: { bg: "#10a37f", cls: "fa-solid fa-robot" },
-  hotmail: { bg: "#f59e0b", cls: "", img:"icons/email/hotmail.png" },
-  gmail: { bg: "#f59e0b", cls: "", img:"icons/email/gmail.png" },
-  rumbler: { bg: "#f59e0b", cls: "", img:"icons/email/rumbler.png" },
-  mail: { bg: "#f59e0b", cls: "", img:"icons/email/mail.png" },
+  email: { bg: "#f59e0b", cls: "fa-solid fa-envelope" },
+  hotmail: { bg: "#f59e0b", cls: "", img: "/icons/email/hotmail.png" },
+  gmail: { bg: "#f59e0b", cls: "", img: "/icons/email/gmail.png" },
+  rumbler: { bg: "#f59e0b", cls: "", img: "/icons/email/rumbler.png" },
+  mail: { bg: "#f59e0b", cls: "", img: "/icons/email/mail.png" },
   vpn: { bg: "#16a34a", cls: "fa-solid fa-shield-halved" },
   expressvpn: { bg: "#da3940", cls: "", img: "/icons/vpn/expressvpn.png" },
   surfshark: { bg: "#ffffff", cls: "", img: "/icons/vpn/surfshark.png" },
   pia: { bg: "#ffffff", cls: "", img: "/icons/vpn/pia.jpg", pad: 4 },
   nordvpn: { bg: "#4687ff", cls: "", img: "/icons/vpn/nordvpn.png" },
   hma: { bg: "#0057a8", cls: "", img: "/icons/vpn/hma.png" },
-  textnow: { bg: "#0ea5e9", cls: "", img: "icons/texting/textnow.png" },
-  textplus: { bg: "#0ea5e9", cls: "", img: "icons/texting/textplus.png" },
-  googlevoice: { bg: "#0ea5e9", cls: "", img: "icons/texting/googlevoice.png"},
+  texting: { bg: "#0ea5e9", cls: "fa-solid fa-comment" },
+  textnow: { bg: "#0ea5e9", cls: "", img: "/icons/texting/textnow.png" },
+  textplus: { bg: "#0ea5e9", cls: "", img: "/icons/texting/textplus.png" },
+  googlevoice: { bg: "#0ea5e9", cls: "", img: "/icons/texting/googlevoice.png" },
   threads: { bg: "#111111", cls: "fa-brands fa-threads" },
-  grindr: { bg: "#f43f5e", cls: "", img: "icons/dating/grindr.png" },
-  tagged: { bg: "#f43f5e", cls: "", img: "icons/dating/tagged.png" },
-  topface: { bg: "#f43f5e", cls: "", img: "icons/dating/topface.png" },
-  meetme: { bg: "#f43f5e", cls: "", img: "icons/dating/meetme.png" },
+  dating: { bg: "#f43f5e", cls: "fa-solid fa-heart" },
+  grindr: { bg: "#f43f5e", cls: "", img: "/icons/dating/grindr.png" },
+  tagged: { bg: "#f43f5e", cls: "", img: "/icons/dating/tagged.png" },
+  topface: { bg: "#f43f5e", cls: "", img: "/icons/dating/topface.png" },
+  // meetme.png currently lives in public/icons/texting/ in your repo
+  meetme: { bg: "#f43f5e", cls: "", img: "/icons/texting/meetme.png" },
   streaming: { bg: "#e50914", cls: "fa-solid fa-play" },
   other: { bg: "#475569", cls: "fa-solid fa-globe" },
 };
@@ -98,19 +102,43 @@ const VPN_KEYWORDS: [RegExp, string][] = [
   [/\bhma\b|hide\s*my\s*ass|hidemyass/, "hma"],
 ];
 
+// Email, texting and dating accounts also match on the account title; unmatched ones keep the generic icon.
+const TITLE_MATCHERS: Record<string, [RegExp, string][]> = {
+  vpn: VPN_KEYWORDS,
+  email: [
+    [/hotmail|outlook/, "hotmail"],
+    [/gmail|google/, "gmail"],
+    [/rambler|rumbler/, "rumbler"],
+    [/mail\.?ru|\bmail\b/, "mail"],
+  ],
+  "texting-apps": [
+    [/textnow|text\s*now/, "textnow"],
+    [/textplus|text\s*plus/, "textplus"],
+    [/google\s*voice|gvoice/, "googlevoice"],
+  ],
+  "dating-sites": [
+    [/grindr/, "grindr"],
+    [/tagged/, "tagged"],
+    [/topface/, "topface"],
+    [/meet\s*me|meetme/, "meetme"],
+  ],
+};
+
 function iconFor(categoryKey: string | undefined, title: string): Icon {
   const k = categoryKey || "";
-  if (k === "vpn") {
+  const matchers = TITLE_MATCHERS[k];
+  if (matchers) {
     const t = title.toLowerCase();
-    const hit = VPN_KEYWORDS.find(([re]) => re.test(t));
-    if (hit) return ICONS[hit[1]];
+    const hit = matchers.find(([re]) => re.test(t));
+    if (hit && ICONS[hit[1]]) return ICONS[hit[1]];
   }
   if (k === "others" || k === "streaming-sites") {
     const t = title.toLowerCase();
     const hit = KEYWORDS.find(([word]) => t.includes(word));
     if (hit) return ICONS[hit[1]];
   }
-  return ICONS[BY_CATEGORY[k] || "other"];
+  // Never return undefined: a missing key here would crash the whole page.
+  return ICONS[BY_CATEGORY[k]] ?? ICONS.other;
 }
 
 /** One category in a rounded box: title + "View all" on top, accounts listed below. */
