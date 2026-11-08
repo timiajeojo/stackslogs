@@ -7,8 +7,8 @@ import type { ReactNode } from "react";
 //   NEXT_PUBLIC_SUPPORT_URL    -> Customer care
 //   NEXT_PUBLIC_COMMUNITY_URL  -> Community
 // While a link is empty, its button shows greyed out and does nothing.
-const CUSTOMER_CARE_URL = process.env.NEXT_PUBLIC_SUPPORT_URL || "";
-const COMMUNITY_URL = process.env.NEXT_PUBLIC_COMMUNITY_URL || "";
+const CUSTOMER_CARE_URL = "https://wa.me/2349152308359";
+const COMMUNITY_URL = "https://chat.whatsapp.com/E9SIS7FjeGA8C2u2f2kbcE?s=cl&p=a&mlu=4";
 
 // Verify SMS opens the numbers site.
 const VERIFY_SMS_URL = "https://stacksnumbers.vercel.app";
