@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Drawer from "../../components/Drawer";
 import { Product, useCatalog, useUser } from "../../lib/store";
 import BuyModal from "../../components/BuyModal";
 import CategoryBox from "../../components/CategoryBox";
@@ -33,25 +34,7 @@ export default function CategoryPage() {
           <div className="avatar">{(user?.firstName || user?.email || "")[0]?.toUpperCase() || ""}</div>
         </div>
       </nav>
-
-      <div className={`drawer-overlay ${drawerOpen ? "open" : ""}`} onClick={() => setDrawerOpen(false)} />
-      <aside className={`drawer ${drawerOpen ? "open" : ""}`}>
-        <div className="drawer-head">
-          <div className="logo"><span className="mark">S</span>StacksLogs</div>
-          <div className="drawer-close" onClick={() => setDrawerOpen(false)}>✕</div>
-        </div>
-        <div className="drawer-section-label">Home</div>
-        <Link href="/dashboard" className="drawer-item" onClick={() => setDrawerOpen(false)}>Dashboard</Link>
-        <div className="drawer-section-label">Account</div>
-        <Link href="/orders" className="drawer-item" onClick={() => setDrawerOpen(false)}>My orders</Link>
-        <Link href="/wallet" className="drawer-item" onClick={() => setDrawerOpen(false)}>Add funds</Link>
-        <Link href="/settings" className="drawer-item" onClick={() => setDrawerOpen(false)}>Settings</Link>
-        <div className="drawer-item">Customer care</div>
-        <div className="drawer-spacer"></div>
-        <div className="drawer-logout">
-          <div className="drawer-item" onClick={logout}>Logout</div>
-        </div>
-      </aside>
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} active="dashboard" onLogout={logout} />
 
       <main className="dash-main">
         <Link href="/dashboard" className="view-all" style={{ display: "inline-block", marginBottom: 14 }}>

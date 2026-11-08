@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
+import Drawer from "../components/Drawer";
 import { API, naira, useUser } from "../lib/store";
 
 interface Order {
@@ -139,27 +140,7 @@ export default function OrdersPage() {
           <div className="avatar">{(user?.firstName || user?.email || "")[0]?.toUpperCase() || ""}</div>
         </div>
       </nav>
-
-      <div className={`drawer-overlay ${drawerOpen ? "open" : ""}`} onClick={() => setDrawerOpen(false)} />
-      <aside className={`drawer ${drawerOpen ? "open" : ""}`}>
-        <div className="drawer-head">
-          <Link href="/dashboard" className="logo" onClick={() => setDrawerOpen(false)}>
-            <span className="mark">S</span>StacksLogs
-          </Link>
-          <button className="drawer-close" onClick={() => setDrawerOpen(false)} aria-label="Close navigation">✕</button>
-        </div>
-        <div className="drawer-section-label">Home</div>
-        <Link href="/dashboard" className="drawer-item" onClick={() => setDrawerOpen(false)}>Dashboard</Link>
-        <div className="drawer-section-label">Account</div>
-        <Link href="/orders" className="drawer-item active" onClick={() => setDrawerOpen(false)}>My orders</Link>
-        <Link href="/wallet" className="drawer-item" onClick={() => setDrawerOpen(false)}>Add funds</Link>
-        <Link href="/settings" className="drawer-item" onClick={() => setDrawerOpen(false)}>Settings</Link>
-        <div className="drawer-item">Customer care</div>
-        <div className="drawer-spacer" />
-        <div className="drawer-logout">
-          <button className="drawer-item logout" onClick={logout}>Logout</button>
-        </div>
-      </aside>
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} active="orders" onLogout={logout} />
 
       <main className="dash-main orders-main">
         <div className="orders-head-card">
