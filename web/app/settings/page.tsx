@@ -227,7 +227,7 @@ export default function SettingsPage() {
           <span className="mark">S</span>StacksLogs
         </Link>
         <div className="nav-right">
-          <div className="avatar">{(email || user?.email || "")[0]?.toUpperCase() || ""}</div>
+          <div className="avatar">{(user?.firstName || saved.firstName || email || user?.email || "")[0]?.toUpperCase() || ""}</div>
         </div>
       </nav>
 

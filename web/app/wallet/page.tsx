@@ -115,7 +115,7 @@ export default function WalletPage() {
           return;
         }
         const user = await response.json();
-        setAvatar(user?.email?.[0]?.toUpperCase() || "U");
+        setAvatar((user?.firstName || user?.email || "U")[0]?.toUpperCase() || "U");
       } catch {
         setAvatar("U");
       }

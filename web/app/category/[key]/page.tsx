@@ -30,7 +30,7 @@ export default function CategoryPage() {
         </div>
         <div className="logo"><span className="mark">S</span>StacksLogs</div>
         <div className="nav-right">
-          <div className="avatar">{user?.email?.[0]?.toUpperCase() || ""}</div>
+          <div className="avatar">{(user?.firstName || user?.email || "")[0]?.toUpperCase() || ""}</div>
         </div>
       </nav>
 
