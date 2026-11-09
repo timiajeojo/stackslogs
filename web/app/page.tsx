@@ -47,11 +47,10 @@ export default function Home() {
 
       <section className="hero">
         <h1>
-          Buy verified social media accounts, <span className="accent">paid in naira</span>
+          Welcome to <span className="accent">Stackslogs</span>
         </h1>
         <p>
-          Browse accounts by category, top up your wallet with Paystack, and keep every order and its details in one
-          place.
+          The right destination for premium social media accounts. Start exploring now and find the right account for your goals.
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
           <Link href="/register" className="btn btn-blue">
@@ -109,7 +108,7 @@ export default function Home() {
             </div>
             <div className="step">
               <span className="step-num">03</span>
-              <h3>Pick an account and buy</h3>
+              <h3>Pick an account and pay</h3>
               <p>Choose from the catalog and place your order. Your details are saved in My Orders for you to copy.</p>
             </div>
           </div>
@@ -149,10 +148,6 @@ export default function Home() {
           </div>
           <div className="feat-grid">
             <div className="feat-card">
-              <div className="feat-icon">₦</div>
-              <h3>Pay in naira</h3>
-              <p>Top up your wallet through Paystack and see every price in naira.</p>
-            </div>
             <div className="feat-card">
               <div className="feat-icon">◉</div>
               <h3>Live stock</h3>
