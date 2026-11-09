@@ -47,6 +47,10 @@ export default function BuyModal({
         onBought({ slug: item.slug, qty, newBalance: data.new_balance });
       } else if (res.status === 202) {
         setBuyMsg({ type: "info", text: data.message || "Your order is being confirmed. Check My orders shortly." });
+        // The money has already been taken, so show the new balance right away.
+        if (typeof data.new_balance === "number") {
+          onBought({ slug: item.slug, qty: 0, newBalance: data.new_balance });
+        }
       } else {
         setBuyMsg({ type: "error", text: data.error || "Purchase failed. Please try again." });
       }
@@ -69,13 +73,8 @@ export default function BuyModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%", maxWidth: 440, maxHeight: "85vh", overflowY: "auto",
-          // Follows the active theme: the page surface nudged slightly toward the text colour,
-          // so it reads as a raised sheet in both light and dark mode.
-          background: "color-mix(in srgb, var(--surface, #0f1626) 90%, var(--text, #fff))",
-          color: "var(--text, #fff)",
-          border: "1px solid var(--border-strong, rgba(128,128,128,0.4))",
-          boxShadow: "0 16px 40px rgba(0,0,0,0.35)",
-          borderRadius: 16, padding: 18,
+          background: "var(--card, #141a2b)", color: "var(--text, #fff)",
+          border: "1px solid rgba(128,128,128,0.25)", borderRadius: 16, padding: 18,
         }}
       >
         {accounts ? (

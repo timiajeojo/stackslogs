@@ -168,7 +168,7 @@ export default function Dashboard() {
 
       <footer className="site-footer">
         <div className="foot-inner">
-          <span>© 2026 StacksLogs</span>
+          <span>©2026 StacksLogs</span>
         </div>
       </footer>
     </>

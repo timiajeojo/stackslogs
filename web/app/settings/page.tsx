@@ -472,7 +472,7 @@ export default function SettingsPage() {
 
       <footer className="site-footer">
         <div className="foot-inner" style={{ justifyContent: "center", textAlign: "center" }}>
-          <span>© 2026 StacksLogs</span>
+          <span>©2026 StacksLogs</span>
         </div>
       </footer>
     </>

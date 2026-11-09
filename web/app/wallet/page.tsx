@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import Drawer from "../components/Drawer";
 import { useRouter } from "next/navigation";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "";
@@ -60,6 +59,7 @@ export default function WalletPage() {
   const [loadError, setLoadError] = useState(false);
 
   const [funding, setFunding] = useState(false);
+  const [payMsg, setPayMsg] = useState<{ type: "ok" | "error" | "info"; text: string } | null>(null);
   const [depositModalOpen, setDepositModalOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState("");
 
@@ -116,7 +116,7 @@ export default function WalletPage() {
           return;
         }
         const user = await response.json();
-        setAvatar((user?.firstName || user?.email || "U")[0]?.toUpperCase() || "U");
+        setAvatar(user?.email?.[0]?.toUpperCase() || "U");
       } catch {
         setAvatar("U");
       }
@@ -124,12 +124,34 @@ export default function WalletPage() {
     loadUser();
     loadWallet(1);
 
+    // Coming back from Paystack: the URL has ?reference=... so confirm that payment.
     const params = new URLSearchParams(window.location.search);
-    const status = params.get("status");
-    if (status === "success") {
-      alert("Payment received. Your balance will update shortly once it's confirmed.");
-    } else if (status === "cancelled") {
-      alert("Payment was cancelled.");
+    const reference = params.get("reference") || params.get("trxref");
+    if (reference) {
+      window.history.replaceState({}, "", window.location.pathname);
+      confirmPayment(reference, token);
+    }
+
+    async function confirmPayment(ref: string, authToken: string) {
+      setPayMsg({ type: "info", text: "Confirming your payment..." });
+      try {
+        const res = await fetch(`${API}/api/wallet/verify?reference=${encodeURIComponent(ref)}`, {
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.status === "completed") {
+          setPayMsg({ type: "ok", text: "Payment successful. Your balance has been updated." });
+        } else if (res.ok && data.status === "failed") {
+          setPayMsg({ type: "error", text: "Payment failed. You were not charged." });
+        } else if (res.ok) {
+          setPayMsg({ type: "info", text: "Your payment is still being confirmed. Refresh in a moment." });
+        } else {
+          setPayMsg({ type: "error", text: data.error || "Couldn't confirm your payment right now." });
+        }
+      } catch {
+        setPayMsg({ type: "error", text: "Network error while confirming your payment." });
+      }
+      loadWallet(1);
     }
   }, [router, loadWallet]);
 
@@ -212,10 +234,192 @@ export default function WalletPage() {
           <div className="avatar">{avatar}</div>
         </div>
       </nav>
-      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} active="wallet" onLogout={logout} />
+
+      {/* Drawer overlay */}
+      <div
+        className={`drawer-overlay ${
+          drawerOpen ? "open" : ""
+        }`}
+        onClick={closeDrawer}
+      />
+
+      {/* Drawer */}
+      <aside className={`drawer ${drawerOpen ? "open" : ""}`}>
+        <div className="drawer-head">
+          <Link
+            href="/dashboard"
+            className="logo"
+            onClick={closeDrawer}
+          >
+            <span className="mark">S</span>
+            StacksLogs
+          </Link>
+
+          <button
+            className="drawer-close"
+            onClick={closeDrawer}
+            aria-label="Close navigation"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="drawer-section-label">
+          Home
+        </div>
+
+        <Link
+          href="/dashboard"
+          className="drawer-item"
+          onClick={closeDrawer}
+        >
+          <span className="d-icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 10.5 12 3l9 7.5" />
+              <path d="M5 9.5V21h14V9.5" />
+            </svg>
+          </span>
+          Dashboard
+        </Link>
+
+        <div className="drawer-section-label">
+          Account
+        </div>
+
+        <Link
+          href="/orders"
+          className="drawer-item"
+          onClick={closeDrawer}
+        >
+          <span className="d-icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="9" cy="20" r="1.4" />
+              <circle cx="18" cy="20" r="1.4" />
+              <path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L21 7H6" />
+            </svg>
+          </span>
+          My orders
+        </Link>
+
+        <Link
+          href="/wallet"
+          className="drawer-item active"
+          onClick={closeDrawer}
+        >
+          <span className="d-icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect
+                x="2.5"
+                y="6"
+                width="19"
+                height="13"
+                rx="2.5"
+              />
+              <path d="M2.5 10.5h19" />
+              <path d="M6 15h4" />
+            </svg>
+          </span>
+          Add funds
+        </Link>
+
+        <Link href="/settings" className="drawer-item" onClick={closeDrawer}>
+          <span className="d-icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 9 19.35a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.65 15a1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.65 9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.65a1.7 1.7 0 0 0 1.04-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.35 9c.13.47.5.86 1.56 1.04H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.56 1.04Z" />
+            </svg>
+          </span>
+          Settings
+        </Link>
+
+        <div className="drawer-item">
+          <span className="d-icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 13a9 9 0 0 1 18 0" />
+              <path d="M21 13v4a2 2 0 0 1-2 2h-1v-6h1a2 2 0 0 1 2 2Z" />
+              <path d="M3 13v4a2 2 0 0 0 2 2h1v-6H5a2 2 0 0 0-2 2Z" />
+            </svg>
+          </span>
+          Customer care
+        </div>
+
+        <div className="drawer-spacer" />
+
+        <div className="drawer-logout">
+          <button
+            className="drawer-item logout"
+            onClick={logout}
+          >
+            <span className="d-icon">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="M16 17l5-5-5-5" />
+                <path d="M21 12H9" />
+              </svg>
+            </span>
+            Logout
+          </button>
+        </div>
+      </aside>
 
       {/* Main */}
       <main className="wallet-main">
+        {payMsg && (
+          <div
+            style={{
+              margin: "0 0 14px",
+              padding: "12px 14px",
+              borderRadius: 12,
+              fontSize: 14,
+              border: "1px solid var(--border-strong, rgba(128,128,128,0.4))",
+              color: payMsg.type === "ok" ? "#22c55e" : payMsg.type === "error" ? "#f87171" : "var(--text, #fff)",
+            }}
+          >
+            {payMsg.text}
+          </div>
+        )}
         <div className="wallet-head-card">
           <div className="wallet-head-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -388,8 +592,7 @@ export default function WalletPage() {
 
       <footer className="site-footer">
         <div className="foot-inner">
-          <span>© 2026 StacksLogs</span>
-          <span>support@stackslogs.com</span>
+          <span>©2026 StacksLogs</span>
         </div>
       </footer>
 
