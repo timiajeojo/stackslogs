@@ -3,12 +3,10 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useCatalog } from "./lib/store";
 
 // Root route: public landing page. Signed-in users go straight to the dashboard.
 export default function Home() {
   const router = useRouter();
-  const { categories } = useCatalog();
 
   useEffect(() => {
     let token: string | null = null;
@@ -38,13 +36,7 @@ export default function Home() {
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, [categories.length]);
-
-  const totalStock = categories.reduce(
-    (sum, c) => sum + c.items.reduce((s, i) => s + (i.available_stock || 0), 0),
-    0
-  );
-  const shown = categories.slice(0, 12);
+  }, []);
 
   return (
     <>
@@ -55,7 +47,6 @@ export default function Home() {
         <div className="navlinks">
           <a href="#how">How it works</a>
           <a href="#features">Features</a>
-          {categories.length > 0 && <a href="#categories">Categories</a>}
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <Link href="/login" className="btn btn-ghost" style={{ padding: "9px 16px" }}>
@@ -87,29 +78,6 @@ export default function Home() {
         </div>
       </section>
 
-      {categories.length > 0 && (
-        <div className="stats">
-          <div className="stats-grid">
-            <div className="reveal from-left">
-              <div className="stat-num">{totalStock.toLocaleString("en-NG")}</div>
-              <div className="stat-label">Accounts in stock</div>
-            </div>
-            <div className="reveal from-right">
-              <div className="stat-num">{categories.length}</div>
-              <div className="stat-label">Categories</div>
-            </div>
-            <div className="reveal from-left">
-              <div className="stat-num">NGN</div>
-              <div className="stat-label">Wallet currency</div>
-            </div>
-            <div className="reveal from-right">
-              <div className="stat-num">Paystack</div>
-              <div className="stat-label">Wallet deposits</div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <section id="how">
         <div className="section-pad">
           <div className="section-head reveal from-left">
@@ -137,32 +105,8 @@ export default function Home() {
         </div>
       </section>
 
-      {shown.length > 0 && (
-        <section id="categories">
-          <div className="section-pad" style={{ paddingTop: 0 }}>
-            <div className="section-head reveal from-left">
-              <span className="section-eyebrow">Categories</span>
-              <h2>What you can buy</h2>
-              <p>This is the live catalog. Sign in to see prices and place an order.</p>
-            </div>
-            <div className="plat-grid">
-              {shown.map((c, idx) => {
-                const stock = c.items.reduce((s, i) => s + (i.available_stock || 0), 0);
-                return (
-                  <div className={`plat-card reveal ${idx % 2 === 0 ? "from-left" : "from-right"}`} key={c.key}>
-                    <div className="plat-badge">{c.name.slice(0, 2).toUpperCase()}</div>
-                    <div className="name">{c.name}</div>
-                    <div className="count">{stock.toLocaleString("en-NG")} in stock</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-      )}
-
       <section id="features">
-        <div className="section-pad" style={{ paddingTop: shown.length > 0 ? 0 : undefined }}>
+        <div className="section-pad">
           <div className="section-head reveal from-left">
             <span className="section-eyebrow">Features</span>
             <h2>Built to keep buying simple</h2>
