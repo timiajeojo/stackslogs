@@ -1568,3 +1568,19 @@ select:focus{border-color:var(--blue);}
 .d-icon svg{width:20px;height:20px;display:block;}
 button.drawer-item{background:transparent;border:0;font-family:inherit;text-align:left;width:calc(100% - 24px);}
 .drawer-logout button.drawer-item{width:100%;}
+
+/* ===== Landing page: slide in from left / right on scroll ===== */
+.reveal{
+  opacity:0;
+  transition:opacity .7s ease, transform .7s cubic-bezier(.2,.7,.2,1);
+  will-change:transform,opacity;
+}
+.reveal.from-left{transform:translateX(-60px);}
+.reveal.from-right{transform:translateX(60px);}
+.reveal.in{opacity:1;transform:translateX(0);}
+.plat-card.reveal.in{transition:opacity .7s ease, transform .2s ease, border-color .15s ease;}
+.plat-card.reveal.in:hover{transform:translateY(-2px);}
+@media (prefers-reduced-motion: reduce){
+  .reveal,.reveal.from-left,.reveal.from-right{opacity:1;transform:none;transition:none;}
+}
+

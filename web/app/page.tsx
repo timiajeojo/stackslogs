@@ -18,6 +18,28 @@ export default function Home() {
     if (token) router.replace("/dashboard");
   }, [router]);
 
+  // Slide elements in from the left or right as they scroll into view.
+  useEffect(() => {
+    const els = document.querySelectorAll<HTMLElement>(".reveal:not(.in)");
+    if (typeof IntersectionObserver === "undefined") {
+      els.forEach((el) => el.classList.add("in"));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((en) => {
+          if (en.isIntersecting) {
+            en.target.classList.add("in");
+            io.unobserve(en.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [categories.length]);
+
   const totalStock = categories.reduce(
     (sum, c) => sum + c.items.reduce((s, i) => s + (i.available_stock || 0), 0),
     0
@@ -46,13 +68,13 @@ export default function Home() {
       </nav>
 
       <section className="hero">
-        <h1>
+        <h1 className="reveal from-left">
           Welcome to <span className="accent">Stackslogs</span>
         </h1>
-        <p>
+        <p className="reveal from-right">
           The right destination for premium social media accounts. Start exploring now and find the right account for your goals.
         </p>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+        <div className="reveal from-left" style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
           <Link href="/register" className="btn btn-blue">
             Create free account
           </Link>
@@ -60,7 +82,7 @@ export default function Home() {
             Sign in
           </Link>
         </div>
-        <div className="hero-note">
+        <div className="hero-note reveal from-right">
           <span className="check">✓</span> Free to sign up. You only pay when you buy.
         </div>
       </section>
@@ -68,19 +90,19 @@ export default function Home() {
       {categories.length > 0 && (
         <div className="stats">
           <div className="stats-grid">
-            <div>
+            <div className="reveal from-left">
               <div className="stat-num">{totalStock.toLocaleString("en-NG")}</div>
               <div className="stat-label">Accounts in stock</div>
             </div>
-            <div>
+            <div className="reveal from-right">
               <div className="stat-num">{categories.length}</div>
               <div className="stat-label">Categories</div>
             </div>
-            <div>
+            <div className="reveal from-left">
               <div className="stat-num">NGN</div>
               <div className="stat-label">Wallet currency</div>
             </div>
-            <div>
+            <div className="reveal from-right">
               <div className="stat-num">Paystack</div>
               <div className="stat-label">Wallet deposits</div>
             </div>
@@ -90,23 +112,23 @@ export default function Home() {
 
       <section id="how">
         <div className="section-pad">
-          <div className="section-head">
+          <div className="section-head reveal from-left">
             <span className="section-eyebrow">How it works</span>
             <h2>From sign-up to your first account in three steps</h2>
             <p>No setup and no back and forth. Everything happens inside your dashboard.</p>
           </div>
           <div className="steps">
-            <div className="step">
+            <div className="step reveal from-left">
               <span className="step-num">01</span>
               <h3>Create your account</h3>
               <p>Sign up with your email and a password. It takes under a minute.</p>
             </div>
-            <div className="step">
+            <div className="step reveal from-right">
               <span className="step-num">02</span>
               <h3>Fund your wallet</h3>
               <p>Add money in naira through Paystack. Your balance is ready to spend once the payment is confirmed.</p>
             </div>
-            <div className="step">
+            <div className="step reveal from-left">
               <span className="step-num">03</span>
               <h3>Pick an account and pay</h3>
               <p>Choose from the catalog and place your order. Your details are saved in My Orders for you to copy.</p>
@@ -118,16 +140,16 @@ export default function Home() {
       {shown.length > 0 && (
         <section id="categories">
           <div className="section-pad" style={{ paddingTop: 0 }}>
-            <div className="section-head">
+            <div className="section-head reveal from-left">
               <span className="section-eyebrow">Categories</span>
               <h2>What you can buy</h2>
               <p>This is the live catalog. Sign in to see prices and place an order.</p>
             </div>
             <div className="plat-grid">
-              {shown.map((c) => {
+              {shown.map((c, idx) => {
                 const stock = c.items.reduce((s, i) => s + (i.available_stock || 0), 0);
                 return (
-                  <div className="plat-card" key={c.key}>
+                  <div className={`plat-card reveal ${idx % 2 === 0 ? "from-left" : "from-right"}`} key={c.key}>
                     <div className="plat-badge">{c.name.slice(0, 2).toUpperCase()}</div>
                     <div className="name">{c.name}</div>
                     <div className="count">{stock.toLocaleString("en-NG")} in stock</div>
@@ -141,23 +163,23 @@ export default function Home() {
 
       <section id="features">
         <div className="section-pad" style={{ paddingTop: shown.length > 0 ? 0 : undefined }}>
-          <div className="section-head">
+          <div className="section-head reveal from-left">
             <span className="section-eyebrow">Features</span>
             <h2>Built to keep buying simple</h2>
             <p>The tools you need to find, buy and keep track of your accounts.</p>
           </div>
           <div className="feat-grid">
-            <div className="feat-card">
+            <div className="feat-card reveal from-left">
               <div className="feat-icon">◉</div>
               <h3>Live stock</h3>
               <p>Browse by category and see how many of each account are available before you buy.</p>
             </div>
-            <div className="feat-card">
+            <div className="feat-card reveal from-right">
               <div className="feat-icon">⧉</div>
               <h3>Saved orders</h3>
               <p>Every purchase is kept in My Orders with its details, ready to copy whenever you need them.</p>
             </div>
-            <div className="feat-card">
+            <div className="feat-card reveal from-left">
               <div className="feat-icon">◐</div>
               <h3>Light or dark</h3>
               <p>Switch the look of the site in Settings to whichever is easier on your eyes.</p>
@@ -167,7 +189,7 @@ export default function Home() {
       </section>
 
       <section>
-        <div className="cta-band">
+        <div className="cta-band reveal from-right">
           <h2>Ready to get started?</h2>
           <p>Create your account, fund your wallet and start browsing.</p>
           <Link href="/register" className="btn btn-blue" style={{ padding: "14px 30px", fontSize: 15 }}>
