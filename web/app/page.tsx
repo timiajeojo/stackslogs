@@ -148,7 +148,6 @@ export default function Home() {
           </div>
           <div className="feat-grid">
             <div className="feat-card">
-            <div className="feat-card">
               <div className="feat-icon">◉</div>
               <h3>Live stock</h3>
               <p>Browse by category and see how many of each account are available before you buy.</p>
