@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { prewarm } from "./lib/store";
+import { prewarm } from "../lib/store";
 
 export default function LoginPage() {
   const router = useRouter();
