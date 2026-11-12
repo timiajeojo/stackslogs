@@ -1,5 +1,6 @@
 import express from "express";
 import catalogRoutes from "./routes/catalog.routes";
+import { warmStorefront } from "./controllers/catalog.controller";
 import authRoutes from "./routes/auth.routes";
 import { requireAuth, AuthRequest } from "./middleware/auth.middleware";
 import cors from "cors";
@@ -187,4 +188,5 @@ app.get("/api/wallet/verify", requireAuth, async (req: AuthRequest, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  warmStorefront(); // build the catalog now, not when the first visitor arrives
 });

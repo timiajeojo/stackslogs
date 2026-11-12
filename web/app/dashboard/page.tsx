@@ -12,7 +12,7 @@ const PREVIEW_COUNT = 5;
 export default function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { user, setUser, logout } = useUser();
-  const { categories, setCategories, loading: catalogLoading, error: catalogError } = useCatalog();
+  const { categories, setCategories, loading: catalogLoading, waking, error: catalogError } = useCatalog();
   const [selected, setSelected] = useState("all"); // "all" | category key
   const [menuOpen, setMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -127,7 +127,18 @@ export default function Dashboard() {
           />
         </div>
 
-        {catalogLoading && <p style={{ color: "var(--text-muted)" }}>Loading accounts...</p>}
+        {catalogLoading && (
+          <div>
+            {waking && (
+              <p style={{ color: "var(--text-muted)", fontSize: 13, margin: "0 0 12px" }}>
+                Waking up the server. This can take up to a minute the first time.
+              </p>
+            )}
+            {[0, 1, 2].map((i) => (
+              <div className="sk-card" key={i} />
+            ))}
+          </div>
+        )}
         {!catalogLoading && catalogError && (
           <p style={{ color: "var(--text-muted)" }}>Couldn't load accounts right now. Please refresh in a moment.</p>
         )}

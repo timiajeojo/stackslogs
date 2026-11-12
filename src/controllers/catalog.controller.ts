@@ -265,9 +265,16 @@ function getStorefront(): Promise<Built> {
 
 // ---- Browse (public) ----
 
+/** Starts building the storefront in the background, so the first visitor doesn't wait for it. */
+export function warmStorefront() {
+  getStorefront().catch((err) => console.error("Storefront warm-up failed:", err));
+}
+
 export async function getCatalog(_req: Request, res: Response) {
   try {
     const built = await getStorefront();
+    // Let browsers and the CDN reuse the answer briefly, and serve a slightly old copy while refreshing.
+    res.set("Cache-Control", "public, max-age=30, stale-while-revalidate=300");
     res.json({ categories: built.categories });
   } catch (err) {
     browseError(res, err);

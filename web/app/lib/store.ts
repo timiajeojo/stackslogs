@@ -25,38 +25,96 @@ export interface User {
 export const naira = (kobo: number) =>
   (kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-// Remembered between pages so switching to the dashboard doesn't flash a loading screen.
+// ---- Remembered in memory (between pages) and on the device (between visits) ----
 let cachedCats: StoreCategory[] | null = null;
 let cachedUser: User | null = null;
 
-/** Loads the storefront (3 attempts, 25s each). Shows the last copy instantly when you come back to a page. */
+const CAT_KEY = "sl_catalog_v1";
+const USER_KEY = "sl_user_v1";
+
+function readJSON<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    return null;
+  }
+}
+function writeJSON(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // storage full or blocked: not a problem, we just skip the cache
+  }
+}
+// A short fingerprint of the login token, so one person's saved details are never shown to another.
+const tokenTag = (token: string) => token.slice(-16);
+
+/**
+ * Wakes the backend. Free hosting puts the server to sleep when it is idle, and the first
+ * request after that takes up to a minute. Calling this on the landing and login pages means
+ * it is already awake by the time the user reaches the dashboard.
+ */
+export function prewarm() {
+  try {
+    fetch(`${API}/health`, { mode: "no-cors", cache: "no-store" }).catch(() => {});
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Loads the storefront. Shows the copy saved on this device instantly, then refreshes it
+ * from the server in the background. `waking` is true when the server is slow to answer.
+ */
 export function useCatalog() {
   const [categories, setCats] = useState<StoreCategory[]>(cachedCats || []);
   const [loading, setLoading] = useState(!cachedCats);
+  const [waking, setWaking] = useState(false);
   const [error, setError] = useState(false);
 
   function setCategories(u: SetStateAction<StoreCategory[]>) {
     setCats((prev) => {
       const next = typeof u === "function" ? u(prev) : u;
       cachedCats = next;
+      writeJSON(CAT_KEY, next);
       return next;
     });
   }
 
   useEffect(() => {
     let cancelled = false;
+
+    // 1. Show what we saved last time, right away.
+    if (!cachedCats) {
+      const saved = readJSON<StoreCategory[]>(CAT_KEY);
+      if (saved && saved.length > 0) {
+        cachedCats = saved;
+        setCats(saved);
+        setLoading(false);
+      }
+    }
+
+    // 2. Tell the user when the server is slow to wake up.
+    const wakeTimer = setTimeout(() => {
+      if (!cancelled && !cachedCats) setWaking(true);
+    }, 5000);
+
+    // 3. Refresh from the server. The first try waits long enough for a sleeping server to wake.
     async function load() {
       for (let attempt = 0; attempt < 3 && !cancelled; attempt++) {
         const ctrl = new AbortController();
-        const timer = setTimeout(() => ctrl.abort(), 25000);
+        const timer = setTimeout(() => ctrl.abort(), attempt === 0 ? 70000 : 30000);
         try {
           const res = await fetch(`${API}/api/catalog`, { signal: ctrl.signal });
           if (!res.ok) throw new Error("catalog failed");
           const data = await res.json();
           if (cancelled) return;
           cachedCats = data.categories || [];
+          writeJSON(CAT_KEY, cachedCats);
           setCats(cachedCats as StoreCategory[]);
           setError(false);
+          setWaking(false);
           setLoading(false);
           return;
         } catch {
@@ -67,16 +125,19 @@ export function useCatalog() {
       }
       if (!cancelled) {
         if (!cachedCats) setError(true);
+        setWaking(false);
         setLoading(false);
       }
     }
     load();
+
     return () => {
       cancelled = true;
+      clearTimeout(wakeTimer);
     };
   }, []);
 
-  return { categories, setCategories, loading, error };
+  return { categories, setCategories, loading, waking, error };
 }
 
 /** Loads the signed-in user (redirects to /login if not signed in). No blocking screen. */
@@ -88,12 +149,19 @@ export function useUser() {
     setUserState((prev) => {
       const next = typeof u === "function" ? u(prev) : u;
       cachedUser = next;
+      try {
+        const token = localStorage.getItem("token");
+        if (token && next) writeJSON(USER_KEY, { tag: tokenTag(token), user: next });
+      } catch {
+        // ignore
+      }
       return next;
     });
   }
 
   function logout() {
     localStorage.removeItem("token");
+    localStorage.removeItem(USER_KEY);
     cachedUser = null;
     cachedCats = null;
     router.push("/login");
@@ -105,24 +173,46 @@ export function useUser() {
       router.push("/login");
       return;
     }
+    let cancelled = false;
+
+    // Show the details saved for THIS login straight away (name and last known balance).
+    if (!cachedUser) {
+      const saved = readJSON<{ tag: string; user: User }>(USER_KEY);
+      if (saved && saved.tag === tokenTag(token)) {
+        cachedUser = saved.user;
+        setUserState(saved.user);
+      }
+    }
+
     async function load() {
-      try {
-        const res = await fetch(`${API}/api/me`, { headers: { Authorization: `Bearer ${token}` } });
-        if (res.status === 401 || res.status === 403) {
-          localStorage.removeItem("token");
-          cachedUser = null;
-          router.push("/login");
+      // Retry a few times: a sleeping server can fail the first request.
+      for (let attempt = 0; attempt < 4 && !cancelled; attempt++) {
+        try {
+          const res = await fetch(`${API}/api/me`, { headers: { Authorization: `Bearer ${token}` } });
+          if (res.status === 401 || res.status === 403) {
+            localStorage.removeItem("token");
+            localStorage.removeItem(USER_KEY);
+            cachedUser = null;
+            router.push("/login");
+            return;
+          }
+          if (!res.ok) throw new Error("me failed");
+          const data = await res.json();
+          if (cancelled) return;
+          cachedUser = data;
+          writeJSON(USER_KEY, { tag: tokenTag(token as string), user: data });
+          setUserState(data);
           return;
+        } catch {
+          await new Promise((r) => setTimeout(r, 3000));
         }
-        if (!res.ok) return;
-        const data = await res.json();
-        cachedUser = data;
-        setUserState(data);
-      } catch {
-        // keep whatever we already have
       }
     }
     load();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   return { user, setUser, logout };

@@ -1,0 +1,18 @@
+/* Add to the bottom of web/app/globals.css */
+.sk-card {
+  height: 96px;
+  margin-bottom: 12px;
+  border-radius: 14px;
+  background: linear-gradient(
+    90deg,
+    var(--surface, #0f1626) 25%,
+    rgba(128, 128, 128, 0.2) 50%,
+    var(--surface, #0f1626) 75%
+  );
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.3s ease-in-out infinite;
+}
+@keyframes sk-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
