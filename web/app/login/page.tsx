@@ -1,152 +1,185 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { prewarm } from "./lib/store";
+import Drawer from "../components/Drawer";
+import { naira, Product, useCatalog, useUser } from "../lib/store";
+import BuyModal from "../components/BuyModal";
+import CategoryBox from "../components/CategoryBox";
 
-// Root route: public landing page. Signed-in users go straight to the dashboard.
-export default function Home() {
-  const router = useRouter();
+const PREVIEW_COUNT = 5;
 
-  useEffect(() => {
-    prewarm();
-    let token: string | null = null;
-    try {
-      token = localStorage.getItem("token");
-    } catch {}
-    if (token) router.replace("/dashboard");
-  }, [router]);
+export default function Dashboard() {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const { user, setUser, logout } = useUser();
+  const { categories, setCategories, loading: catalogLoading, waking, error: catalogError } = useCatalog();
+  const [selected, setSelected] = useState("all"); // "all" | category key
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [buyItem, setBuyItem] = useState<Product | null>(null);
 
-  // Slide elements in from the left or right as they scroll into view.
-  useEffect(() => {
-    const els = document.querySelectorAll<HTMLElement>(".reveal:not(.in)");
-    if (typeof IntersectionObserver === "undefined") {
-      els.forEach((el) => el.classList.add("in"));
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((en) => {
-          if (en.isIntersecting) {
-            en.target.classList.add("in");
-            io.unobserve(en.target);
-          }
-        });
-      },
-      { threshold: 0.12 }
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, []);
+  const query = search.trim().toLowerCase();
+  // Home view (all categories, no search): only the first 5 accounts per category.
+  const overview = selected === "all" && !query;
+  const visible = categories
+    .filter((c) => selected === "all" || c.key === selected)
+    .map((c) => {
+      const matches = c.items.filter((i) => !query || i.title.toLowerCase().includes(query));
+      return { ...c, items: overview ? matches.slice(0, PREVIEW_COUNT) : matches };
+    })
+    .filter((c) => c.items.length > 0);
+
+  const selectedName = selected === "all" ? "All categories" : categories.find((c) => c.key === selected)?.name || "All categories";
+
+  function pick(key: string) {
+    setSelected(key);
+    setMenuOpen(false);
+  }
+
+  const optionStyle = (active: boolean): CSSProperties => ({
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+    width: "100%",
+    padding: "12px 14px",
+    border: "none",
+    borderRadius: 10,
+    cursor: "pointer",
+    textAlign: "left",
+    fontSize: 14,
+    color: active ? "#fff" : "var(--text, #fff)",
+    background: active ? "var(--blue, #3b82f6)" : "transparent",
+  });
 
   return (
     <>
-      <nav>
-        <Link href="/" className="logo">
-          <span className="mark">S</span>StacksLogs
-        </Link>
-        <div className="navlinks">
-          <a href="#how">How it works</a>
-          <a href="#features">Features</a>
+      <nav className="dash">
+        <div className="nav-left">
+          <div className="burger" onClick={() => setDrawerOpen(true)}>
+            <span></span><span></span><span></span>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <Link href="/login" className="btn btn-ghost" style={{ padding: "9px 16px" }}>
-            Sign in
-          </Link>
-          <Link href="/register" className="btn btn-blue" style={{ padding: "9px 16px" }}>
-            Get started
-          </Link>
+        <div className="logo"><span className="mark">S</span>StacksLogs</div>
+        <div className="nav-right">
+          <div className="avatar">{(user?.firstName || user?.email || "")[0]?.toUpperCase() || ""}</div>
         </div>
       </nav>
+      <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} active="dashboard" onLogout={logout} />
 
-      <section className="hero">
-        <h1 className="reveal from-left">
-          Welcome to <span className="accent">Stackslogs</span>
-        </h1>
-        <p className="reveal from-right">
-          The right destination for premium social media accounts. Start exploring now and find the right account for your goals.
-        </p>
-        <div className="reveal from-left" style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-          <Link href="/register" className="btn btn-blue">
-            Create free account
-          </Link>
-          <Link href="/login" className="btn btn-ghost" style={{ padding: "14px 30px", fontSize: 15 }}>
-            Sign in
-          </Link>
-        </div>
-        <div className="hero-note reveal from-right">
-          <span className="check">✓</span> Free to sign up. You only pay when you buy.
-        </div>
-      </section>
-
-      <section id="how">
-        <div className="section-pad">
-          <div className="section-head reveal from-left">
-            <span className="section-eyebrow">How it works</span>
-            <h2>From sign-up to your first account in three steps</h2>
-            <p>No setup and no back and forth. Everything happens inside your dashboard.</p>
+      <main className="dash-main">
+        <div className="balance-card">
+          <div>
+            <div className="greeting">Welcome back{user?.firstName ? "," : ""} <strong>{user?.firstName}</strong></div>
+            <div className="amount"><span className="cur">₦</span>{user ? naira(user.balance || 0) : "0.00"}</div>
           </div>
-          <div className="steps">
-            <div className="step reveal from-left">
-              <span className="step-num">01</span>
-              <h3>Create your account</h3>
-              <p>Sign up with your email and a password. It takes under a minute.</p>
-            </div>
-            <div className="step reveal from-right">
-              <span className="step-num">02</span>
-              <h3>Fund your wallet</h3>
-              <p>Add money in naira through Paystack. Your balance is ready to spend once the payment is confirmed.</p>
-            </div>
-            <div className="step reveal from-left">
-              <span className="step-num">03</span>
-              <h3>Pick an account and pay</h3>
-              <p>Choose from the catalog and place your order. Your details are saved in My Orders for you to copy.</p>
-            </div>
+          <div className="balance-actions">
+            <Link href="/wallet" className="btn btn-blue">Fund wallet</Link>
+            <Link href="/orders" className="btn btn-ghost">Order history</Link>
           </div>
         </div>
-      </section>
 
-      <section id="features">
-        <div className="section-pad">
-          <div className="section-head reveal from-left">
-            <span className="section-eyebrow">Features</span>
-            <h2>Built to keep buying simple</h2>
-            <p>The tools you need to find, buy and keep track of your accounts.</p>
-          </div>
-          <div className="feat-grid">
-            <div className="feat-card reveal from-left">
-              <div className="feat-icon">◉</div>
-              <h3>Live stock</h3>
-              <p>Browse by category and see how many of each account are available before you buy.</p>
-            </div>
-            <div className="feat-card reveal from-right">
-              <div className="feat-icon">⧉</div>
-              <h3>Saved orders</h3>
-              <p>Every purchase is kept in My Orders with its details, ready to copy whenever you need them.</p>
-            </div>
-            <div className="feat-card reveal from-left">
-              <div className="feat-icon">◐</div>
-              <h3>Light or dark</h3>
-              <p>Switch the look of the site in Settings to whichever is easier on your eyes.</p>
-            </div>
-          </div>
-        </div>
-      </section>
+        <div className="filter-row">
+          <div style={{ position: "relative", flex: "0 0 auto" }}>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              style={{
+                display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 12,
+                cursor: "pointer", fontSize: 14, maxWidth: 190,
+                background: "var(--surface, #0f1626)", color: "var(--text, #fff)",
+                border: `1px solid ${menuOpen ? "var(--blue, #3b82f6)" : "var(--border-strong, rgba(128,128,128,0.4))"}`,
+              }}
+            >
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{selectedName}</span>
+              <span style={{ fontSize: 10, transform: menuOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }}>▼</span>
+            </button>
 
-      <section>
-        <div className="cta-band reveal from-right">
-          <h2>Ready to get started?</h2>
-          <p>Create your account, fund your wallet and start browsing.</p>
-          <Link href="/register" className="btn btn-blue" style={{ padding: "14px 30px", fontSize: 15 }}>
-            Create free account
-          </Link>
+            {menuOpen && (
+              <>
+                <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+                <div
+                  style={{
+                    position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 50,
+                    width: 260, maxHeight: 360, overflowY: "auto", padding: 6,
+                    background: "var(--surface, #0f1626)", border: "1px solid var(--border-strong, rgba(128,128,128,0.4))",
+                    borderRadius: 14, boxShadow: "0 12px 32px rgba(0,0,0,0.45)",
+                  }}
+                >
+                  <button type="button" style={optionStyle(selected === "all")} onClick={() => pick("all")}>
+                    <span>All categories</span>
+                  </button>
+                  {categories.map((c) => (
+                    <button type="button" key={c.key} style={optionStyle(selected === c.key)} onClick={() => pick(c.key)}>
+                      <span>{c.name}</span>
+                      <span style={{ fontSize: 12, opacity: 0.7 }}>{c.items.length}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+          <input
+            className="search-input"
+            placeholder="Search accounts..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-      </section>
+
+        {catalogLoading && (
+          <div>
+            {waking && (
+              <p style={{ color: "var(--text-muted)", fontSize: 13, margin: "0 0 12px" }}>
+                Waking up the server. This can take up to a minute the first time.
+              </p>
+            )}
+            {[0, 1, 2].map((i) => (
+              <div className="sk-card" key={i} />
+            ))}
+          </div>
+        )}
+        {!catalogLoading && catalogError && (
+          <p style={{ color: "var(--text-muted)" }}>Couldn't load accounts right now. Please refresh in a moment.</p>
+        )}
+        {!catalogLoading && !catalogError && visible.length === 0 && (
+          <p style={{ color: "var(--text-muted)" }}>No accounts match your filters yet.</p>
+        )}
+
+        {visible.map((cat) => (
+          <CategoryBox
+            key={cat.key}
+            categoryKey={cat.key}
+            name={cat.name}
+            href={`/category/${cat.key}`}
+            items={cat.items}
+            onBuy={setBuyItem}
+          />
+        ))}
+      </main>
+
+      {buyItem && user && (
+        <BuyModal
+          item={buyItem}
+          balance={user.balance}
+          onClose={() => setBuyItem(null)}
+          onBought={({ slug, qty, newBalance }) => {
+            setUser((u) => (u ? { ...u, balance: newBalance } : u));
+            setCategories((cats) =>
+              cats.map((c) => ({
+                ...c,
+                items: c.items.map((p) =>
+                  p.slug === slug ? { ...p, available_stock: Math.max(p.available_stock - qty, 0) } : p
+                ),
+              }))
+            );
+          }}
+        />
+      )}
 
       <footer className="site-footer">
         <div className="foot-inner">
-          <span>© 2026 StacksLogs</span>
+          <span>©2026 StacksLogs</span>
         </div>
       </footer>
     </>
