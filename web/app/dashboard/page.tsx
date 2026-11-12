@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { prewarm } from "../../lib/store";
+import { prewarm } from "../lib/store";
 
 // Root route: public landing page. Signed-in users go straight to the dashboard.
 export default function Home() {
