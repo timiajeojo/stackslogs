@@ -214,12 +214,12 @@ export default function CategoryBox({
               <div style={{ fontSize: 14, lineHeight: 1.4, wordBreak: "break-word" }}>{item.title}</div>
               <div style={{ marginTop: 8 }}>
                 <span className={`stock-pill ${item.available_stock > 0 ? "in" : "out"}`}>
-                  {item.available_stock > 0 ? `${item.available_stock} in stock` : "Sold out"}
+                  {item.available_stock > 0 ? `${item.available_stock} in stock` : "Out of stock"}
                 </span>
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, flexShrink: 0 }}>
-              <span style={{ fontWeight: 700, fontSize: 15 }}>₦{naira(item.price)}</span>
+              <span style={{ fontWeight: 700, fontSize: 15 }}>{item.price > 0 ? `₦${naira(item.price)}` : "—"}</span>
               <button className="cart-btn" disabled={item.available_stock === 0} onClick={() => onBuy(item)}>
                 <svg
                   viewBox="0 0 24 24"

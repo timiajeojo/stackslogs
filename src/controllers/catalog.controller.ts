@@ -169,6 +169,7 @@ function isExcluded(title: string, exclude: string[]) {
 type StoreProduct = { slug: string; title: string; available_stock: number; price: number };
 type Built = {
   fetched: number;
+  degraded: boolean; // true when YoungPG could not be reached
   categories: { key: string; name: string; items: StoreProduct[] }[];
   slugs: Set<string>;
   problems: string[];
@@ -183,10 +184,30 @@ function toStoreProduct(p: YpgListing, displayName?: string): StoreProduct {
   };
 }
 
+const PLACEHOLDER = "unavailable-";
+
+/** Short stable id so an out-of-stock placeholder keeps the same key between rebuilds. */
+function stableId(text: string) {
+  let h = 5381;
+  for (const ch of text) h = ((h << 5) + h + ch.charCodeAt(0)) | 0;
+  return (h >>> 0).toString(36);
+}
+
+// Remembers the last price we saw for each account, so an account that disappears from
+// YoungPG can still show its price while it is out of stock. (Resets when the server restarts.)
+const lastKnownPrice = new Map<string, number>();
+
 async function buildStorefront(): Promise<Built> {
   const started = Date.now();
   const problems: string[] = [];
-  const all = await cached("all-listings", 90_000, () => fetchPaged({}));
+  let all: YpgListing[] = [];
+  let degraded = false;
+  try {
+    all = await cached("all-listings", 90_000, () => fetchPaged({}));
+  } catch (err) {
+    degraded = true;
+    problems.push(`YoungPG unavailable: ${(err as Error).message}`);
+  }
   const categories: Built["categories"] = [];
 
   for (const cat of STOREFRONT) {
@@ -194,15 +215,33 @@ async function buildStorefront(): Promise<Built> {
 
     if ("items" in cat) {
       for (const wanted of cat.items) {
-        const found = findProduct(all, wanted.title);
-        if (!found) {
-          const near = closest(all, wanted.title);
-          problems.push(`${cat.name}: NO MATCH for "${wanted.title}" | closest: ${near.length ? near.map((n) => `"${n}"`).join(" ; ") : "nothing similar"}`);
-        } else if (found === "ambiguous") {
-          problems.push(`${cat.name}: SEVERAL MATCHES for "${wanted.title}"`);
-        } else {
-          items.set(found.slug, toStoreProduct(found, wanted.displayName));
+        const found = degraded ? undefined : findProduct(all, wanted.title);
+        const key = norm(wanted.title);
+
+        if (found && found !== "ambiguous") {
+          const product = toStoreProduct(found, wanted.displayName);
+          lastKnownPrice.set(key, product.price);
+          items.set(found.slug, product);
+          continue;
         }
+
+        if (!degraded) {
+          if (found === "ambiguous") {
+            problems.push(`${cat.name}: SEVERAL MATCHES for "${wanted.title}"`);
+          } else {
+            const near = closest(all, wanted.title);
+            problems.push(`${cat.name}: NO MATCH for "${wanted.title}" | closest: ${near.length ? near.map((n) => `"${n}"`).join(" ; ") : "nothing similar"}`);
+          }
+        }
+
+        // Keep the account on the site, marked out of stock, instead of letting it disappear.
+        const slug = PLACEHOLDER + stableId(key);
+        items.set(slug, {
+          slug,
+          title: wanted.displayName || wanted.title,
+          available_stock: 0,
+          price: lastKnownPrice.get(key) ?? 0, // 0 = price not known
+        });
       }
     } else {
       try {
@@ -228,9 +267,11 @@ async function buildStorefront(): Promise<Built> {
 
   if (problems.length) console.warn("Storefront problems:\n" + problems.join("\n"));
 
-  const slugs = new Set(categories.flatMap((c) => c.items.map((i) => i.slug)));
+  const slugs = new Set(
+    categories.flatMap((c) => c.items.map((i) => i.slug)).filter((slug) => !slug.startsWith(PLACEHOLDER))
+  );
   console.log(`Storefront built in ${Date.now() - started}ms from ${all.length} listings`);
-  return { fetched: all.length, categories, slugs, problems };
+  return { fetched: all.length, degraded, categories, slugs, problems };
 }
 
 let lastGood: Built | null = null;
@@ -247,6 +288,14 @@ function getStorefront(): Promise<Built> {
   if (!building) {
     building = buildStorefront()
       .then((b) => {
+        if (b.degraded) {
+          // YoungPG is down. Keep showing the last good copy if we have one, and retry in ~30s.
+          if (lastGood) {
+            lastBuiltAt = Date.now() - 60_000;
+            return lastGood;
+          }
+          return b; // nothing saved yet: show everything as out of stock, but don't cache it
+        }
         lastGood = b;
         lastBuiltAt = Date.now();
         return b;
