@@ -102,7 +102,7 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Twitter",
     items: [
       t("Twitter Accounts | Email Verified Outlook Email (Working) in the set | Empty Profile | 2FA + (Base64) Cookies Included | MIX IP", "Empty Twitter"),
-      t("Twitter Accounts | Verified by SMS | Email address is included in the set | An avatar is added to a profile | 2FA in the set | Auth Token Included | Accounts are registered in IP addresses of USA.", "USA Twitter"),
+      t("Twitter Accounts | Verified by e-mai@outlook.com/hotmail.com, email address is included in the set. Female. An avatar is added to a profile. Partially filled profiles. 2FA in the set. Accounts are registered in IP addresses of USA", "USA Twitter"),
       t("Twitter Accounts | The accounts were registered on 03.2023. Verified by email@Hotmail\Outlook, email included (may require confirmation by SMS). Male or female. An avatar is added to a profile. Accounts are registered in IP addresses of different countries.", "Random Twitter | Year 2023"),
       t("Twitter Accounts | Verified by e-mai@outlook.com/hotmail.com, email address is included in the set. Female. An avatar is added to a profile. Partially filled profiles. 2FA in the set. Accounts are registered in IP addresses of USA.", "Female USA Twitter"),
     ],
@@ -133,7 +133,7 @@ export const STOREFRONT: StorefrontCategory[] = [
     name: "Snapchat",
     items: [
       t("UK 🇬🇧 SNAPCHAT"),
-      t("Snapchat.com Accounts | Verified by gmx mail (email included in the set). New Accounts, Sex can be both male and female. The accounts are registered with USA IPs.", "USA Snapchat | Mail Included"),
+      t("Snapchat.com Accounts | Verified by email@mail.com, (email included in the set). New Accounts, Sex can be both male and female. The accounts are registered with USA IPs.", "USA Snapchat | Mail Included"),
       t("Snapchat Accounts | Fresh/New | 2FA Enabled", "Snapchat | Fresh/New"),
     ],
   },
