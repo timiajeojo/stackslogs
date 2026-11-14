@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { requireAdmin } from "../middleware/admin.middleware";
-import { addLedger, deleteLedger, getStats, listLedger } from "../controllers/admin.controller";
+import { addTopup, deleteTopup, getStats, listTopups } from "../controllers/admin.controller";
 
 const router = Router();
 
@@ -8,8 +8,8 @@ const router = Router();
 router.use(requireAdmin);
 
 router.get("/stats", getStats);
-router.get("/ledger", listLedger);
-router.post("/ledger", addLedger);
-router.delete("/ledger/:id", deleteLedger);
+router.get("/topups", listTopups);
+router.post("/topups", addTopup);
+router.delete("/topups/:id", deleteTopup);
 
 export default router;

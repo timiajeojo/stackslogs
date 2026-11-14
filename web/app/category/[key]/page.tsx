@@ -86,7 +86,6 @@ export default function CategoryPage() {
       <footer className="site-footer">
         <div className="foot-inner">
           <span>© 2026 StacksLogs</span>
-          <span>support@stackslogs.com</span>
         </div>
       </footer>
     </>
