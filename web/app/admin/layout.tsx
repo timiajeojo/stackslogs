@@ -10,10 +10,10 @@ const LINE = "rgba(255,255,255,0.08)";
 
 const ITEMS: { label: string; icon: string; href?: string }[] = [
   { label: "Dashboard", icon: "📊", href: "/admin" },
-  { label: "Transactions", icon: "💳" },
-  { label: "Users", icon: "👥" },
-  { label: "Purchases", icon: "🛒" },
-  { label: "YPG Media", icon: "🌐" },
+  { label: "Transactions", icon: "💳", href: "/admin/transactions" },
+  { label: "Users", icon: "👥", href: "/admin/users" },
+  { label: "Purchases", icon: "🛒", href: "/admin/purchases" },
+  { label: "YPG Media", icon: "🌐", href: "/admin/ypg" },
   { label: "Reports", icon: "📈" },
   { label: "Settings", icon: "⚙️" },
 ];
@@ -64,7 +64,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 key={it.label}
                 href={it.href}
                 onClick={() => setOpen(false)}
-                className={`adm-link${path === it.href ? " active" : ""}`}
+                className={`adm-link${(it.href === "/admin" ? path === "/admin" : path.startsWith(it.href)) ? " active" : ""}`}
               >
                 <span aria-hidden>{it.icon}</span>
                 {it.label}
