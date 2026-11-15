@@ -65,7 +65,7 @@ export default function BuyModal({
     <div
       onClick={onClose}
       style={{
-        position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 100,
+        position: "fixed", inset: 0, background: "var(--overlay)", zIndex: 100,
         display: "flex", alignItems: "flex-end", justifyContent: "center", padding: 12,
       }}
     >
@@ -73,8 +73,8 @@ export default function BuyModal({
         onClick={(e) => e.stopPropagation()}
         style={{
           width: "100%", maxWidth: 440, maxHeight: "85vh", overflowY: "auto",
-          background: "var(--card, #141a2b)", color: "var(--text, #fff)",
-          border: "1px solid rgba(128,128,128,0.25)", borderRadius: 16, padding: 18,
+          background: "var(--surface)", color: "var(--text)",
+          border: "1px solid var(--border-strong)", borderRadius: 16, padding: 18,
         }}
       >
         {accounts ? (
@@ -85,7 +85,7 @@ export default function BuyModal({
             </p>
             <pre
               style={{
-                background: "rgba(128,128,128,0.12)", padding: 12, borderRadius: 10,
+                background: "var(--surface-2)", border: "1px solid var(--border)", padding: 12, borderRadius: 10,
                 fontSize: 12, whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0,
               }}
             >
@@ -130,7 +130,7 @@ export default function BuyModal({
               </p>
             )}
             {buyMsg && (
-              <p style={{ fontSize: 13, margin: "12px 0 0", color: buyMsg.type === "error" ? "#f87171" : "inherit" }}>
+              <p style={{ fontSize: 13, margin: "12px 0 0", color: buyMsg.type === "error" ? "var(--danger)" : "inherit" }}>
                 {buyMsg.text}
               </p>
             )}
