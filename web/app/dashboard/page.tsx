@@ -74,7 +74,7 @@ export default function Dashboard() {
             <div className="amount"><span className="cur">₦</span>{user ? naira(user.balance || 0) : "0.00"}</div>
           </div>
           <div className="balance-actions">
-            <Link href="/wallet" className="btn btn-blue">Fund wallet</Link>
+            <Link href="#" className="btn btn-blue">Fund wallet</Link>
             <Link href="/orders" className="btn btn-ghost">Order history</Link>
           </div>
         </div>
