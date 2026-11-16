@@ -139,7 +139,7 @@ export default function Drawer({
         <Link href="/orders" className={cls("orders")} onClick={onClose}>
           {icons.orders}My orders
         </Link>
-        <Link href="#" className={cls("wallet")} onClick={onClose}>
+        <Link href="/wallet" className={cls("wallet")} onClick={onClose}>
           {icons.wallet}Add funds
         </Link>
         <Link href="/settings" className={cls("settings")} onClick={onClose}>
